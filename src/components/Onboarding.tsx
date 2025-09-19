@@ -6,6 +6,7 @@ import { ChevronRight, User, Target, Weight, Ruler } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
+  isUpdating?: boolean;
 }
 
 interface UserProfile {
@@ -16,7 +17,7 @@ interface UserProfile {
   targetWeight?: number;
 }
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
+export default function Onboarding({ onComplete, isUpdating = false }: OnboardingProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [profile, setProfile] = useState<UserProfile>({
@@ -236,11 +237,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               
               <button
                 onClick={handleNext}
-                disabled={currentStep === 3 && profile.goals.length === 0}
+                disabled={(currentStep === 3 && profile.goals.length === 0) || isUpdating}
                 className="bg-[#85ea10] hover:bg-[#7dd30f] disabled:bg-gray-500 disabled:cursor-not-allowed text-black font-bold px-8 py-3 rounded-xl transition-all duration-300 flex items-center space-x-2"
               >
-                <span>{currentStep === steps.length - 1 ? 'Finalizar' : 'Siguiente'}</span>
-                <ChevronRight className="w-5 h-5" />
+                {isUpdating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{currentStep === steps.length - 1 ? 'Finalizar' : 'Siguiente'}</span>
+                    <ChevronRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
             </div>
           </div>
