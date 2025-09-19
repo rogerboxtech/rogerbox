@@ -53,6 +53,13 @@ export default function UserAuth() {
     appStore.toggleAdminMode();
   };
 
+  // Si hay usuarios, seleccionar el primero automáticamente
+  useEffect(() => {
+    if (users.length > 0 && !currentUser) {
+      handleSelectUser(users[0].id);
+    }
+  }, [users, currentUser]);
+
   if (currentUser) {
     return (
       <StudentDashboard 
@@ -122,13 +129,6 @@ export default function UserAuth() {
       </div>
     );
   }
-
-  // Si hay usuarios, seleccionar el primero automáticamente
-  useEffect(() => {
-    if (users.length > 0 && !currentUser) {
-      handleSelectUser(users[0].id);
-    }
-  }, [users, currentUser]);
 
   return null;
 }

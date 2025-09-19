@@ -1,29 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
 import Onboarding from '@/components/Onboarding';
-import CourseDashboard from '@/components/CourseDashboard';
+import SimpleLoading from '@/components/SimpleLoading';
+import { supabase } from '@/lib/supabase';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  height: number;
+  weight: number;
+  gender: string;
+  goals: string[];
+  target_weight: number | null;
+  membership_status: string;
+}
 
 export default function OnboardingPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const { createUser, selectUser } = useStore();
-  const [userProfile, setUserProfile] = useState(null);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleOnboardingComplete = (profile: any) => {
-    // Create user with the profile data
-    const userId = createUser(profile.name || 'Usuario', profile.weight, profile.height, profile.gender, profile.goals, profile.targetWeight);
-    selectUser(userId);
-    
-    setUserProfile(profile);
-    setIsOnboardingComplete(true);
+  // Redirigir si no está autenticado
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
+  const handleComplete = async (profile: UserProfile) => {
+    if (!session?.user?.email) {
+      console.error('No hay sesión de usuario');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      console.log('Actualizando perfil con datos:', profile);
+
+      // Actualizar el perfil en Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          height: profile.height,
+          weight: profile.weight,
+          gender: profile.gender,
+          goals: profile.goals,
+          target_weight: profile.targetWeight
+        })
+        .eq('email', session.user.email);
+
+      if (error) {
+        console.error('Error actualizando perfil:', error);
+        alert('Error al guardar el perfil. Intenta de nuevo.');
+        return;
+      }
+
+      console.log('Perfil actualizado exitosamente');
+      
+      // Redirigir al dashboard
+      router.push('/dashboard');
+      
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      alert('Error inesperado. Intenta de nuevo.');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  if (isOnboardingComplete && userProfile) {
-    return <CourseDashboard userProfile={userProfile} />;
+  if (status === 'loading') {
+    return <SimpleLoading message="Preparando tu experiencia..." size="lg" />;
   }
 
-  return <Onboarding onComplete={handleOnboardingComplete} />;
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#164151]/80 via-[#29839c]/70 to-[#29839c]/60">
+      <Onboarding onComplete={handleComplete} isUpdating={isUpdating} />
+    </div>
+  );
 }
