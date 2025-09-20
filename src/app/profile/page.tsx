@@ -43,14 +43,15 @@ export default function ProfilePage() {
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.email) {
+      if (session?.user?.id) {
         try {
-          console.log('Buscando perfil para email:', session.user.email);
+          console.log('Buscando perfil para ID:', session.user.id);
           
+          // Primero buscar por ID (más confiable)
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email', session.user.email)
+            .eq('id', session.user.id)
             .maybeSingle();
 
           if (error) {
@@ -60,59 +61,42 @@ export default function ProfilePage() {
           }
 
           if (data) {
-            console.log('Perfil encontrado:', data);
-            console.log('Nombre actual en Supabase:', data.name);
-            console.log('Email actual en Supabase:', data.email);
+            console.log('Perfil encontrado por ID:', data);
             setUserProfile(data);
           } else {
-            console.log('No se encontró perfil para este email, creando uno nuevo en Supabase');
-            // Crear perfil en Supabase si no existe
-            const newProfile = {
-              id: session.user.id || '',
-              name: session.user.name || 'Usuario',
-              email: session.user.email || '',
-              height: 170,
-              weight: 70,
-              gender: 'other' as const,
-              goals: [],
-              target_weight: null,
-              membership_status: 'inactive' as const
-            };
+            console.log('No se encontró perfil por ID, buscando por email...');
+            // Buscar por email como fallback
+            const { data: emailData, error: emailError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', session.user.email)
+              .maybeSingle();
 
-            try {
-              // Insertar en Supabase
-              const { data: insertData, error: insertError } = await supabase
-                .from('profiles')
-                .insert([newProfile])
-                .select();
+            if (emailError) {
+              console.error('Error buscando por email:', emailError);
+              setLoading(false);
+              return;
+            }
 
-              if (insertError) {
-                console.error('Error creando perfil:', insertError);
-                // Si es error de duplicado, buscar el perfil existente
-                if (insertError.code === '23505') {
-                  console.log('Perfil ya existe, buscando...');
-                  const { data: existingData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                  
-                  if (existingData) {
-                    console.log('Perfil existente encontrado:', existingData);
-                    setUserProfile(existingData);
-                  } else {
-                    setUserProfile(newProfile);
-                  }
-                } else {
-                  console.error('Error no manejado:', insertError);
-                  setUserProfile(newProfile);
-                }
-              } else {
-                console.log('Perfil creado en Supabase:', insertData);
-                setUserProfile(insertData[0]);
-              }
-            } catch (error) {
-              console.error('Error inesperado al crear perfil:', error);
+            if (emailData) {
+              console.log('Perfil encontrado por email:', emailData);
+              setUserProfile(emailData);
+            } else {
+              console.log('No se encontró perfil, creando uno nuevo');
+              // Crear perfil básico solo en memoria, no en Supabase
+              const newProfile = {
+                id: session.user.id,
+                name: session.user.name || 'Usuario',
+                email: session.user.email || '',
+                height: 170,
+                weight: 70,
+                gender: 'other' as const,
+                goals: [],
+                target_weight: null,
+                membership_status: 'inactive' as const
+              };
+              
+              console.log('Usando perfil local:', newProfile);
               setUserProfile(newProfile);
             }
           }

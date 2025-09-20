@@ -37,14 +37,15 @@ export default function DashboardPage() {
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.email) {
+      if (session?.user?.id) {
         try {
-          console.log('Dashboard: Buscando perfil para email:', session.user.email);
+          console.log('Dashboard: Buscando perfil para ID:', session.user.id);
           
+          // Primero buscar por ID (más confiable)
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email', session.user.email)
+            .eq('id', session.user.id)
             .maybeSingle();
 
           if (error) {
@@ -54,54 +55,43 @@ export default function DashboardPage() {
           }
 
           if (data) {
-            console.log('Dashboard: Perfil encontrado:', data);
-            console.log('Dashboard: Nombre del perfil:', data.name);
-            console.log('Dashboard: Email del perfil:', data.email);
+            console.log('Dashboard: Perfil encontrado por ID:', data);
             setUserProfile(data);
           } else {
-            console.log('Dashboard: No se encontró perfil en Supabase, creando uno nuevo');
-            // Crear perfil en Supabase si no existe
-            const newProfile = {
-              id: session.user.id || '',
-              name: session.user.name || 'Usuario',
-              email: session.user.email || '',
-              height: 170,
-              weight: 70,
-              gender: 'other' as const,
-              goals: [],
-              target_weight: null,
-              membership_status: 'inactive' as const
-            };
-
-            // Insertar en Supabase
-            const { data: insertData, error: insertError } = await supabase
+            console.log('Dashboard: No se encontró perfil por ID, buscando por email...');
+            // Buscar por email como fallback
+            const { data: emailData, error: emailError } = await supabase
               .from('profiles')
-              .insert([newProfile])
-              .select();
+              .select('*')
+              .eq('email', session.user.email)
+              .maybeSingle();
 
-            if (insertError) {
-              console.error('Error creando perfil:', insertError);
-              // Si es error de duplicado, buscar el perfil existente
-              if (insertError.code === '23505') {
-                console.log('Perfil ya existe, buscando...');
-                const { data: existingData } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', session.user.id)
-                  .single();
-                
-                if (existingData) {
-                  console.log('Perfil existente encontrado:', existingData);
-                  setUserProfile(existingData);
-                } else {
-                  setUserProfile(newProfile);
-                }
-              } else {
-                setUserProfile(newProfile);
-              }
+            if (emailError) {
+              console.error('Dashboard: Error buscando por email:', emailError);
+              setLoading(false);
+              return;
+            }
+
+            if (emailData) {
+              console.log('Dashboard: Perfil encontrado por email:', emailData);
+              setUserProfile(emailData);
             } else {
-              console.log('Perfil creado en Supabase:', insertData);
-              setUserProfile(insertData[0]);
+              console.log('Dashboard: No se encontró perfil, creando uno nuevo');
+              // Crear perfil básico solo en memoria, no en Supabase
+              const newProfile = {
+                id: session.user.id,
+                name: session.user.name || 'Usuario',
+                email: session.user.email || '',
+                height: 170,
+                weight: 70,
+                gender: 'other' as const,
+                goals: [],
+                target_weight: null,
+                membership_status: 'inactive' as const
+              };
+              
+              console.log('Dashboard: Usando perfil local:', newProfile);
+              setUserProfile(newProfile);
             }
           }
         } catch (error) {
@@ -121,18 +111,19 @@ export default function DashboardPage() {
 
   // Refrescar datos cada vez que se monta el componente
   useEffect(() => {
-    if (session?.user?.email) {
+    if (session?.user?.id) {
       const refreshProfile = async () => {
         try {
           console.log('Dashboard: Refrescando perfil...');
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email', session.user.email);
+            .eq('id', session.user.id)
+            .single();
 
-          if (!error && data && data.length > 0) {
-            console.log('Dashboard: Perfil actualizado:', data[0]);
-            setUserProfile(data[0]);
+          if (!error && data) {
+            console.log('Dashboard: Perfil actualizado:', data);
+            setUserProfile(data);
           }
         } catch (error) {
           console.error('Error refreshing profile:', error);
@@ -141,7 +132,7 @@ export default function DashboardPage() {
       
       refreshProfile();
     }
-  }, [session?.user?.email]);
+  }, [session?.user?.id]);
 
   if (status === 'loading' || loading) {
     return <SimpleLoading message="Cargando dashboard..." size="lg" showProgress={true} />;
