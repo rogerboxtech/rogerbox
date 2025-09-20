@@ -62,21 +62,69 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       console.log('Iniciando registro con:', formData.email);
       
       // Registrar usuario en Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email.trim(),
-        password: formData.password,
-        options: {
-          data: {
-            name: formData.name.trim()
+      let authData, authError;
+      try {
+        const result = await supabase.auth.signUp({
+          email: formData.email.trim(),
+          password: formData.password,
+          options: {
+            data: {
+              name: formData.name.trim()
+            }
           }
+        });
+        authData = result.data;
+        authError = result.error;
+      } catch (error: any) {
+        console.error('Error capturado en signUp:', error);
+        // Si es un error de usuario ya registrado, manejarlo
+        if (error.message && error.message.includes('User already registered')) {
+          setRegisterError('Ya tienes una cuenta registrada con este email. Por favor, inicia sesión.');
+          return;
         }
-      });
+        // Para otros errores, re-lanzar
+        throw error;
+      }
 
       console.log('Respuesta de Supabase Auth:', { authData, authError });
 
       if (authError) {
         console.error('Error de autenticación:', authError);
-        setRegisterError(authError.message);
+        
+        // Manejar diferentes tipos de errores de Supabase
+        if (authError.message === 'User already registered' || 
+            authError.message.includes('already registered') ||
+            authError.message.includes('User already registered') ||
+            authError.message.includes('already been registered') ||
+            authError.message.includes('duplicate key value')) {
+          setRegisterError('Ya tienes una cuenta registrada con este email. Por favor, inicia sesión.');
+        } else if (authError.message.includes('Invalid email') || 
+                   authError.message.includes('email format')) {
+          setRegisterError('El formato del email no es válido. Por favor, verifica tu dirección de correo.');
+        } else if (authError.message.includes('Password should be at least') ||
+                   authError.message.includes('password is too short')) {
+          setRegisterError('La contraseña debe tener al menos 6 caracteres.');
+        } else if (authError.message.includes('Password should contain') ||
+                   authError.message.includes('password requirements')) {
+          setRegisterError('La contraseña no cumple con los requisitos de seguridad.');
+        } else if (authError.message.includes('Email rate limit') ||
+                   authError.message.includes('too many requests')) {
+          setRegisterError('Demasiados intentos. Por favor, espera unos minutos antes de intentar nuevamente.');
+        } else if (authError.message.includes('Email not confirmed') ||
+                   authError.message.includes('email confirmation')) {
+          setRegisterError('Por favor, confirma tu email antes de continuar. Revisa tu bandeja de entrada.');
+        } else if (authError.message.includes('Invalid credentials') ||
+                   authError.message.includes('authentication failed')) {
+          setRegisterError('Error de autenticación. Por favor, verifica tus datos.');
+        } else if (authError.message.includes('Network error') ||
+                   authError.message.includes('connection failed')) {
+          setRegisterError('Error de conexión. Por favor, verifica tu internet e intenta nuevamente.');
+        } else if (authError.message.includes('Server error') ||
+                   authError.message.includes('internal error')) {
+          setRegisterError('Error del servidor. Por favor, intenta nuevamente en unos minutos.');
+        } else {
+          setRegisterError('Error inesperado. Por favor, intenta nuevamente o contacta soporte.');
+        }
         return;
       }
 
@@ -101,7 +149,13 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
-          setRegisterError(`Error al crear el perfil: ${profileError.message}`);
+          
+          // Si es error de duplicado, el usuario ya existe
+          if (profileError.code === '23505') {
+            setRegisterError('Ya tienes una cuenta registrada con este email. Por favor, inicia sesión.');
+          } else {
+            setRegisterError(`Error al crear el perfil: ${profileError.message}`);
+          }
           return;
         }
 
@@ -240,11 +294,26 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                         </p>
                       </div>
 
-                      {/* Error Message */}
+                      {/* Info Message */}
                       {registerError && (
-                        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl flex items-center space-x-3">
-                          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                          <p className="text-red-400 text-sm">{registerError}</p>
+                        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl backdrop-blur-sm">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-yellow-900 text-xs font-bold">i</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-yellow-200 text-sm mb-3 leading-relaxed">{registerError}</p>
+                              {registerError.includes('Ya tienes una cuenta registrada') && (
+                                <button
+                                  type="button"
+                                  onClick={onLogin}
+                                  className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/40 text-yellow-100 hover:text-yellow-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105"
+                                >
+                                  Ir a Iniciar Sesión
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
 

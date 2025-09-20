@@ -79,35 +79,41 @@ export default function ProfilePage() {
               membership_status: 'inactive' as const
             };
 
-            // Insertar en Supabase
-            const { data: insertData, error: insertError } = await supabase
-              .from('profiles')
-              .insert([newProfile])
-              .select();
+            try {
+              // Insertar en Supabase
+              const { data: insertData, error: insertError } = await supabase
+                .from('profiles')
+                .insert([newProfile])
+                .select();
 
-            if (insertError) {
-              console.error('Error creando perfil:', insertError);
-              // Si es error de duplicado, buscar el perfil existente
-              if (insertError.code === '23505') {
-                console.log('Perfil ya existe, buscando...');
-                const { data: existingData } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', session.user.id)
-                  .single();
-                
-                if (existingData) {
-                  console.log('Perfil existente encontrado:', existingData);
-                  setUserProfile(existingData);
+              if (insertError) {
+                console.error('Error creando perfil:', insertError);
+                // Si es error de duplicado, buscar el perfil existente
+                if (insertError.code === '23505') {
+                  console.log('Perfil ya existe, buscando...');
+                  const { data: existingData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                  
+                  if (existingData) {
+                    console.log('Perfil existente encontrado:', existingData);
+                    setUserProfile(existingData);
+                  } else {
+                    setUserProfile(newProfile);
+                  }
                 } else {
+                  console.error('Error no manejado:', insertError);
                   setUserProfile(newProfile);
                 }
               } else {
-                setUserProfile(newProfile);
+                console.log('Perfil creado en Supabase:', insertData);
+                setUserProfile(insertData[0]);
               }
-            } else {
-              console.log('Perfil creado en Supabase:', insertData);
-              setUserProfile(insertData[0]);
+            } catch (error) {
+              console.error('Error inesperado al crear perfil:', error);
+              setUserProfile(newProfile);
             }
           }
         } catch (error) {

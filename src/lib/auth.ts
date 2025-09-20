@@ -1,13 +1,8 @@
 import { NextAuthOptions } from 'next-auth'
-import { SupabaseAdapter } from '@auth/supabase-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { supabase } from './supabase'
 
 export const authOptions: NextAuthOptions = {
-  adapter: SupabaseAdapter({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    secret: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  }),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -17,31 +12,52 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials')
           return null
         }
 
         try {
+          console.log('Attempting login with:', credentials.email)
+          
           // Intentar hacer login con Supabase
           const { data, error } = await supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           })
 
-          if (error || !data.user) {
+          console.log('Supabase auth result:', { data, error })
+
+          if (error) {
+            console.error('Supabase auth error:', error)
+            return null
+          }
+
+          if (!data.user) {
+            console.log('No user data returned')
             return null
           }
 
           // Obtener el perfil del usuario
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single()
 
-          if (!profile) {
+          console.log('Profile fetch result:', { profile, profileError })
+
+          if (profileError) {
+            console.error('Profile fetch error:', profileError)
             return null
           }
 
+          if (!profile) {
+            console.log('No profile found')
+            return null
+          }
+
+          console.log('Login successful for user:', profile.name)
+          
           return {
             id: data.user.id,
             email: data.user.email,
