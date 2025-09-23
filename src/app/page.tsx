@@ -233,22 +233,6 @@ export default function HomePage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
-  // Si el usuario está autenticado, redirigir al dashboard
-  if (status === 'authenticated') {
-    router.push('/dashboard');
-    return <QuickLoading message="Cargando..." duration={3000} />;
-  }
-
-  // Si está cargando la sesión, mostrar loading
-  if (status === 'loading') {
-    return <QuickLoading message="Cargando..." duration={3000} />;
-  }
-
-  // Cargar cursos al montar el componente
-  useEffect(() => {
-    loadCourses();
-  }, []);
-
   const loadCourses = async () => {
     try {
       setLoadingCourses(true);
@@ -292,6 +276,22 @@ export default function HomePage() {
       setLoadingCourses(false);
     }
   };
+
+  // Cargar cursos al montar el componente
+  useEffect(() => {
+    loadCourses();
+  }, []);
+
+  // Si el usuario está autenticado, redirigir al dashboard
+  if (status === 'authenticated') {
+    router.push('/dashboard');
+    return <QuickLoading message="Cargando..." duration={3000} />;
+  }
+
+  // Si está cargando la sesión, mostrar loading
+  if (status === 'loading') {
+    return <QuickLoading message="Cargando..." duration={3000} />;
+  }
 
   const categories = [
     { id: 'all', name: 'Todos', emoji: '🌟' },
