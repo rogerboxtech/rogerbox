@@ -17,7 +17,8 @@ import {
   UserCheck,
   DollarSign,
   X,
-  CheckCircle
+  CheckCircle,
+  Search
 } from 'lucide-react';
 import QuickLoading from '@/components/QuickLoading';
 import CourseCreator from '@/components/admin/CourseCreator';
@@ -58,6 +59,9 @@ export default function AdminDashboard() {
   const [showCourseCreator, setShowCourseCreator] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -91,10 +95,12 @@ export default function AdminDashboard() {
     }
   }, [status, session, router]);
 
-  // Cargar cursos cuando se cambie a la pestaña de cursos
+  // Cargar datos cuando se cambie de pestaña
   useEffect(() => {
     if (activeTab === 'courses') {
       loadCourses();
+    } else if (activeTab === 'users') {
+      loadUsers();
     }
   }, [activeTab]);
 
@@ -140,6 +146,34 @@ export default function AdminDashboard() {
       alert('Error al cargar los cursos. Revisa la consola para más detalles.');
     } finally {
       setLoadingCourses(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      console.log('Cargando usuarios...');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error de Supabase:', error);
+        throw error;
+      }
+      
+      console.log('Usuarios cargados:', data);
+      if (data && data.length > 0) {
+        console.log('Columnas disponibles en el primer usuario:', Object.keys(data[0]));
+      }
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      alert('Error al cargar los usuarios. Revisa la consola para más detalles.');
+    } finally {
+      setLoadingUsers(false);
     }
   };
 
@@ -544,11 +578,127 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="text-center text-gray-500 dark:text-white/60 py-8">
-                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-white/30" />
-                <p>Panel de usuarios en desarrollo</p>
+            {/* Barra de búsqueda */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar usuarios por nombre o email..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#85ea10] focus:border-transparent"
+                />
               </div>
+            </div>
+
+            {/* Lista de usuarios */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              {loadingUsers ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#85ea10] mx-auto"></div>
+                  <p className="text-gray-500 dark:text-white/60 mt-2">Cargando usuarios...</p>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center text-gray-500 dark:text-white/60 py-8">
+                  <Users className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-white/30" />
+                  <p>No hay usuarios registrados</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Usuario
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Meta
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Peso Actual
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Fecha Registro
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Estado
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {users
+                        .filter(user => 
+                          user.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                          user.email?.toLowerCase().includes(userSearchTerm.toLowerCase())
+                        )
+                        .map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-[#85ea10] flex items-center justify-center">
+                                  <span className="text-black font-semibold text-sm">
+                                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {user.name || 'Sin nombre'}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  ID: {user.id.substring(0, 8)}...
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {user.email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {user.goals || user.goal || 'No especificada'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {user.current_weight ? `${user.current_weight} kg` : 'No especificado'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(user.created_at).toLocaleDateString('es-ES')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.subscription_status === 'active' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                            }`}>
+                              {user.subscription_status === 'active' ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
