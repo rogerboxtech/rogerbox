@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { Play, Clock, Users, Star, Filter, Search, ArrowRight, Trophy, Target, Zap, Utensils, BookOpen, ChefHat, User, LogOut, ChevronDown, Settings } from 'lucide-react';
-import ComplementSection from './ComplementSection';
+import { Play, Clock, Users, Star, Filter, Search, ArrowRight, Trophy, Target, Zap, Utensils, BookOpen, ChefHat, User, LogOut, ChevronDown, Settings, Bookmark } from 'lucide-react';
+// ComplementSection removed - focusing on courses only
 
 interface Course {
   id: string;
@@ -41,6 +41,18 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Lógica inteligente para determinar el estado del usuario
+  console.log('CourseDashboard - userProfile:', userProfile);
+  console.log('CourseDashboard - goals:', userProfile?.goals);
+  console.log('CourseDashboard - goals length:', userProfile?.goals?.length);
+  
+  const isNewUser = !userProfile?.goals || userProfile.goals.length === 0;
+  const hasCompletedOnboarding = userProfile?.goals && userProfile.goals.length > 0;
+  const hasEnrolledCourses = false; // TODO: Implementar lógica real de cursos inscritos
+  
+  console.log('CourseDashboard - isNewUser:', isNewUser);
+  console.log('CourseDashboard - hasCompletedOnboarding:', hasCompletedOnboarding);
+
   const handleLogout = async () => {
     try {
       await signOut({ redirect: false });
@@ -70,99 +82,99 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
     { id: 'tone', name: 'Tonificar', icon: '💪' },
     { id: 'gain_muscle', name: 'Ganar Músculo', icon: '🏋️' },
     { id: 'endurance', name: 'Resistencia', icon: '🏃' },
-    { id: 'flexibility', name: 'Flexibilidad', icon: '🧘' },
-    { id: 'strength', name: 'Fuerza', icon: '⚡' }
+    { id: 'hiit', name: 'HIIT', icon: '⚡' },
+    { id: 'strength', name: 'Fuerza', icon: '💪' }
   ];
 
   const defaultCourses: Course[] = [
     {
       id: '1',
-      title: 'HIIT para Principiantes',
-      instructor: 'Roger Barreto',
+      title: 'Transformación Total 90 Días',
+      instructor: 'RogerBox',
       category: 'lose_weight',
-      duration: '30 min',
-      level: 'Principiante',
-      rating: 4.8,
-      students: 1234,
-      price: 19.99,
-      thumbnail: '/images/course-1.jpg',
-      description: 'Rutinas de alta intensidad perfectas para empezar a quemar grasa y mejorar tu resistencia.',
-      lessons: 8,
+      duration: '90 días',
+      level: 'Intermedio',
+      rating: 4.9,
+      students: 2847,
+      price: 89,
+      thumbnail: '/images/curso-transformacion.jpg',
+      description: 'Programa completo de transformación física en 90 días con desbloqueo diario de clases.',
+      lessons: 90,
       isRecommended: userProfile?.goals?.includes('lose_weight') || false
     },
     {
       id: '2',
-      title: 'Fuerza Total: Cuerpo Completo',
-      instructor: 'Roger Barreto',
-      category: 'strength',
-      duration: '45 min',
-      level: 'Intermedio',
-      rating: 4.9,
-      students: 2156,
-      price: 29.99,
-      thumbnail: '/images/course-2.jpg',
-      description: 'Desarrolla fuerza y tonifica cada músculo con este programa completo.',
-      lessons: 12,
-      isRecommended: userProfile?.goals?.includes('strength') || false
+      title: 'HIIT Quema Grasa',
+      instructor: 'RogerBox',
+      category: 'hiit',
+      duration: '21 días',
+      level: 'Avanzado',
+      rating: 4.7,
+      students: 1456,
+      price: 69,
+      thumbnail: '/images/curso-hiit.jpg',
+      description: 'Entrenamiento de alta intensidad para quemar grasa y tonificar músculos.',
+      lessons: 21,
+      isRecommended: userProfile?.goals?.includes('hiit') || false
     },
     {
       id: '3',
-      title: 'Yoga para la Flexibilidad',
-      instructor: 'Roger Barreto',
-      category: 'flexibility',
-      duration: '60 min',
-      level: 'Principiante',
-      rating: 4.7,
-      students: 876,
-      price: 14.99,
-      thumbnail: '/images/course-3.jpg',
-      description: 'Mejora tu rango de movimiento y reduce el estrés con estas posturas de yoga.',
-      lessons: 10,
-      isRecommended: userProfile?.goals?.includes('flexibility') || false
+      title: 'Fuerza y Músculo',
+      instructor: 'RogerBox',
+      category: 'strength',
+      duration: '60 días',
+      level: 'Intermedio',
+      rating: 4.8,
+      students: 1923,
+      price: 79,
+      thumbnail: '/images/curso-fuerza.jpg',
+      description: 'Desarrolla fuerza muscular con ejercicios progresivos y técnicas avanzadas.',
+      lessons: 60,
+      isRecommended: userProfile?.goals?.includes('strength') || false
     },
     {
       id: '4',
       title: 'Cardio Intenso',
-      instructor: 'Roger Barreto',
+      instructor: 'RogerBox',
       category: 'endurance',
-      duration: '45 min',
+      duration: '30 días',
       level: 'Avanzado',
       rating: 4.9,
       students: 2156,
-      price: 24.99,
-      thumbnail: '/images/course-4.jpg',
+      price: 59,
+      thumbnail: '/images/curso-cardio.jpg',
       description: 'Entrenamientos cardiovasculares de alta intensidad para llevar tu resistencia al límite.',
-      lessons: 10,
+      lessons: 30,
       isRecommended: userProfile?.goals?.includes('endurance') || false
     },
     {
       id: '5',
       title: 'Tonificación Total',
-      instructor: 'Roger Barreto',
+      instructor: 'RogerBox',
       category: 'tone',
-      duration: '40 min',
+      duration: '45 días',
       level: 'Intermedio',
       rating: 4.6,
       students: 1543,
-      price: 22.99,
-      thumbnail: '/images/course-5.jpg',
+      price: 69,
+      thumbnail: '/images/curso-tonificacion.jpg',
       description: 'Define y tonifica tu cuerpo con ejercicios específicos para cada grupo muscular.',
-      lessons: 14,
+      lessons: 45,
       isRecommended: userProfile?.goals?.includes('tone') || false
     },
     {
       id: '6',
       title: 'Ganancia Muscular',
-      instructor: 'Roger Barreto',
+      instructor: 'RogerBox',
       category: 'gain_muscle',
-      duration: '50 min',
+      duration: '75 días',
       level: 'Avanzado',
       rating: 4.8,
       students: 987,
-      price: 34.99,
-      thumbnail: '/images/course-6.jpg',
+      price: 99,
+      thumbnail: '/images/curso-musculo.jpg',
       description: 'Maximiza tu crecimiento muscular con ejercicios de alta intensidad.',
-      lessons: 16,
+      lessons: 75,
       isRecommended: userProfile?.goals?.includes('gain_muscle') || false
     }
   ];
@@ -248,162 +260,280 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
               ¡Hola, {userProfile?.name || 'Usuario'}! 👋
             </h2>
             <p className="text-white/80">
-              Listo para tu próxima sesión de entrenamiento
+              {isNewUser 
+                ? '¡Bienvenido a RogerBox! Comienza tu transformación'
+                : 'Listo para tu próxima sesión de entrenamiento'
+              }
             </p>
             
-            {/* Complete Profile Banner */}
-            {(!userProfile?.goals || userProfile.goals.length === 0) && (
-              <div className="mt-4 bg-[#85ea10]/20 border border-[#85ea10]/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-semibold mb-1">¡Completa tu perfil!</h3>
-                    <p className="text-white/80 text-sm">
-                      Personaliza tu experiencia con tus objetivos y preferencias
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/onboarding')}
-                    className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Completar
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* My Courses Section */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
-                <Trophy className="w-6 h-6" />
-                <span>Mis Cursos</span>
-              </h3>
-              <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors">
-                Ver todos
-              </button>
+          {/* Complement Section - Prioridad para usuarios nuevos */}
+          {/* Complement section removed - focusing on courses only */}
+
+          {/* My Courses Section - Solo si el usuario tiene cursos inscritos */}
+          {hasEnrolledCourses && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                  <Trophy className="w-6 h-6" />
+                  <span>Mis Cursos</span>
+                </h3>
+                <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors">
+                  Ver todos
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Sample enrolled course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                      En Progreso
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.8</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    HIIT para Principiantes
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Rutinas de alta intensidad perfectas para empezar
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>30 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>1,234 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>3/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-[#85ea10] h-2 rounded-full" style={{ width: '37.5%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Play className="w-5 h-5" />
+                    <span>Continuar</span>
+                  </button>
+                </div>
+                
+                {/* Sample completed course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      Completado
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.9</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    Cardio Intenso
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Entrenamientos cardiovasculares de alta intensidad
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>45 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>2,156 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>8/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Trophy className="w-5 h-5" />
+                    <span>Ver Certificado</span>
+                  </button>
+                </div>
+                
+                {/* Empty state for more courses */}
+                <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trophy className="w-8 h-8 text-white/40" />
+                    </div>
+                    <p className="text-white/60 mb-4">Explora más cursos</p>
+                    <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors font-medium">
+                      Ver catálogo
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Sample enrolled course */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
-                    En Progreso
-                  </span>
-                  <div className="flex items-center space-x-1 text-yellow-400">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-medium">4.8</span>
-                  </div>
-                </div>
-                
-                <h4 className="text-xl font-bold text-white mb-2">
-                  HIIT para Principiantes
-                </h4>
-                <p className="text-white/60 mb-4">
-                  Rutinas de alta intensidad perfectas para empezar
-                </p>
-                
-                <div className="flex items-center justify-between text-sm text-white/60 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>30 min</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-4 h-4" />
-                    <span>1,234 estudiantes</span>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm text-white/60 mb-1">
-                    <span>Progreso</span>
-                    <span>3/8 clases</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-[#85ea10] h-2 rounded-full" style={{ width: '37.5%' }}></div>
-                  </div>
-                </div>
-                
-                <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
-                  <Play className="w-5 h-5" />
-                  <span>Continuar</span>
+          )}
+          
+
+
+          {/* Complement Section - Prioridad para usuarios nuevos */}
+          {/* Complement section removed - focusing on courses only */}
+
+          {/* My Courses Section - Solo si el usuario tiene cursos inscritos */}
+          {hasEnrolledCourses && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                  <Trophy className="w-6 h-6" />
+                  <span>Mis Cursos</span>
+                </h3>
+                <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors">
+                  Ver todos
                 </button>
               </div>
               
-              {/* Sample completed course */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                    Completado
-                  </span>
-                  <div className="flex items-center space-x-1 text-yellow-400">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-medium">4.9</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Sample enrolled course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                      En Progreso
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.8</span>
+                    </div>
                   </div>
-                </div>
-                
-                <h4 className="text-xl font-bold text-white mb-2">
-                  Cardio Intenso
-                </h4>
-                <p className="text-white/60 mb-4">
-                  Entrenamientos cardiovasculares de alta intensidad
-                </p>
-                
-                <div className="flex items-center justify-between text-sm text-white/60 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>45 min</span>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    HIIT para Principiantes
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Rutinas de alta intensidad perfectas para empezar
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>30 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>1,234 estudiantes</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-4 h-4" />
-                    <span>2,156 estudiantes</span>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>3/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-[#85ea10] h-2 rounded-full" style={{ width: '37.5%' }}></div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm text-white/60 mb-1">
-                    <span>Progreso</span>
-                    <span>8/8 clases</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
-                  </div>
-                </div>
-                
-                <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
-                  <Trophy className="w-5 h-5" />
-                  <span>Ver Certificado</span>
-                </button>
-              </div>
-              
-              {/* Empty state for more courses */}
-              <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Trophy className="w-8 h-8 text-white/40" />
-                  </div>
-                  <p className="text-white/60 mb-4">Explora más cursos</p>
-                  <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors font-medium">
-                    Ver catálogo
+                  
+                  <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Play className="w-5 h-5" />
+                    <span>Continuar</span>
                   </button>
                 </div>
+                
+                {/* Sample completed course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      Completado
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.9</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    Cardio Intenso
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Entrenamientos cardiovasculares de alta intensidad
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>45 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>2,156 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>8/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Trophy className="w-5 h-5" />
+                    <span>Ver Certificado</span>
+                  </button>
+                </div>
+                
+                {/* Empty state for more courses */}
+                <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trophy className="w-8 h-8 text-white/40" />
+                    </div>
+                    <p className="text-white/60 mb-4">Explora más cursos</p>
+                    <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors font-medium">
+                      Ver catálogo
+                    </button>
+                  </div>
+                </div>
               </div>
-          </div>
-        </div>
+            </div>
+          )}
+          
 
-        {/* Complement Section */}
-        <ComplementSection />
 
-        {/* Recommended Courses Section */}
-          <div className="mb-8">
+          {/* Recommended Courses Section */}
+          <div id="recommended-courses" className="mb-8">
             <h3 className="text-2xl font-bold text-white mb-6">
-              Cursos Recomendados para Ti
+              {isNewUser ? 'Cursos Destacados' : 'Cursos Recomendados para Ti'}
             </h3>
             <p className="text-white/80 mb-6">
-              Basado en tus objetivos: {userProfile?.goals?.map(goal => 
-                categories.find(cat => cat.id === goal)?.name
-              ).join(', ') || 'Todos los cursos'}
+              {isNewUser 
+                ? 'Descubre nuestros cursos más populares y comienza tu transformación'
+                : `Basado en tus objetivos: ${userProfile?.goals?.map(goal => 
+                    categories.find(cat => cat.id === goal)?.name
+                  ).join(', ') || 'Todos los cursos'}`
+              }
             </p>
 
             {/* Search and Filter */}

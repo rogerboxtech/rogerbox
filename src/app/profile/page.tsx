@@ -3,9 +3,9 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { User, Mail, Weight, Ruler, Target, Trophy, Calendar, Edit, ArrowLeft, X, Eye, EyeOff } from 'lucide-react';
-import SimpleLoading from '@/components/SimpleLoading';
+import { User, Mail, Weight, Ruler, Target, Trophy, Calendar, Edit, ArrowLeft, X, Eye, EyeOff, Bookmark, Play, FileText, Heart, LogOut, ChevronDown, Utensils } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import QuickLoading from '@/components/QuickLoading';
 
 interface UserProfile {
   id: string;
@@ -16,7 +16,13 @@ interface UserProfile {
   gender: string;
   goals: string[];
   target_weight: number | null;
+  goal_deadline: string | null;
   membership_status: string;
+  current_weight?: number | null;
+  weight_progress_percentage?: number | null;
+  last_weight_update?: string | null;
+  streak_days?: number | null;
+  last_class_date?: string | null;
 }
 
 export default function ProfilePage() {
@@ -25,6 +31,7 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPhysicalModal, setShowPhysicalModal] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -32,6 +39,18 @@ export default function ProfilePage() {
     newPassword: '',
     confirmPassword: ''
   });
+  const [physicalForm, setPhysicalForm] = useState({
+    weight: '',
+    height: ''
+  });
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalData, setGoalData] = useState({
+    targetWeight: '',
+    goalType: 'lose',
+    deadline: ''
+  });
+  const [goalError, setGoalError] = useState('');
+  const [goalLoading, setGoalLoading] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -39,67 +58,72 @@ export default function ProfilePage() {
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
+  const [favorites, setFavorites] = useState({
+    complements: [],
+    courses: [],
+    blog: []
+  });
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
 
-  // Obtener datos del perfil desde Supabase
+  // Cargar favoritos del usuario
+  const fetchFavorites = async () => {
+    if (!session?.user?.id) return;
+    
+    setFavoritesLoading(true);
+    try {
+      // Por ahora, simular cursos favoritos hasta que implementemos la funcionalidad
+      const mockCourses = [
+        {
+          id: '1',
+          title: 'Transformación Total 90 Días',
+          description: 'Programa completo de transformación física en 90 días',
+          category: 'Bajar de Peso',
+          price: 89
+        },
+        {
+          id: '2',
+          title: 'HIIT Quema Grasa',
+          description: 'Entrenamiento de alta intensidad para quemar grasa',
+          category: 'HIIT',
+          price: 69
+        }
+      ];
+      
+      setFavorites(prev => ({
+        ...prev,
+        courses: mockCourses
+      }));
+    } catch (error) {
+      console.error('Error cargando favoritos:', error);
+    } finally {
+      setFavoritesLoading(false);
+    }
+  };
+
+  // Cargar perfil del usuario
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (session?.user?.id) {
         try {
-          console.log('Buscando perfil para ID:', session.user.id);
-          
-          // Primero buscar por ID (más confiable)
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .maybeSingle();
+            .single();
 
           if (error) {
             console.error('Error fetching profile:', error);
-            setLoading(false);
             return;
           }
 
-          if (data) {
-            console.log('Perfil encontrado por ID:', data);
-            setUserProfile(data);
-          } else {
-            console.log('No se encontró perfil por ID, buscando por email...');
-            // Buscar por email como fallback
-            const { data: emailData, error: emailError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('email', session.user.email)
-              .maybeSingle();
-
-            if (emailError) {
-              console.error('Error buscando por email:', emailError);
-              setLoading(false);
-              return;
-            }
-
-            if (emailData) {
-              console.log('Perfil encontrado por email:', emailData);
-              setUserProfile(emailData);
-            } else {
-              console.log('No se encontró perfil, creando uno nuevo');
-              // Crear perfil básico solo en memoria, no en Supabase
-              const newProfile = {
-                id: session.user.id,
-                name: session.user.name || 'Usuario',
-                email: session.user.email || '',
-                height: 170,
-                weight: 70,
-                gender: 'other' as const,
-                goals: [],
-                target_weight: null,
-                membership_status: 'inactive' as const
-              };
-              
-              console.log('Usando perfil local:', newProfile);
-              setUserProfile(newProfile);
-            }
-          }
+          setUserProfile(data);
+          setEditForm({
+            name: data.name || '',
+            email: data.email || '',
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          });
         } catch (error) {
           console.error('Error:', error);
         } finally {
@@ -110,430 +134,865 @@ export default function ProfilePage() {
 
     if (status === 'authenticated') {
       fetchUserProfile();
+      fetchFavorites();
     } else if (status === 'unauthenticated') {
-      setLoading(false);
+      router.push('/');
     }
   }, [session, status, router]);
 
-  // Función para abrir el modal de edición
-  const handleEditProfile = () => {
-    if (userProfile) {
-      setEditForm({
-        name: userProfile.name,
-        email: userProfile.email,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setShowEditModal(true);
-      setEditError('');
-    }
-  };
-
-  // Función para cerrar el modal
-  const handleCloseModal = () => {
-    setShowEditModal(false);
-    setEditError('');
-  };
-
-  // Función para actualizar el perfil
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleEditProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditLoading(true);
     setEditError('');
 
     try {
-      // Validar contraseñas si se está cambiando
-      if (editForm.newPassword && editForm.newPassword !== editForm.confirmPassword) {
-        setEditError('Las contraseñas nuevas no coinciden');
-        setEditLoading(false);
-        return;
+      // Validar contraseñas si se están cambiando
+      if (editForm.newPassword || editForm.confirmPassword) {
+        if (editForm.newPassword !== editForm.confirmPassword) {
+          setEditError('Las contraseñas no coinciden');
+          setEditLoading(false);
+          return;
+        }
+        if (editForm.newPassword.length < 6) {
+          setEditError('La nueva contraseña debe tener al menos 6 caracteres');
+          setEditLoading(false);
+          return;
+        }
       }
 
-      if (editForm.newPassword && editForm.newPassword.length < 6) {
-        setEditError('La nueva contraseña debe tener al menos 6 caracteres');
-        setEditLoading(false);
-        return;
-      }
-
-      // Actualizar datos en Supabase
-      console.log('=== INICIANDO ACTUALIZACIÓN ===');
-      console.log('ID del perfil:', userProfile?.id);
-      console.log('Email actual:', userProfile?.email);
-      console.log('Nuevos datos:', { name: editForm.name, email: editForm.email });
-      
-      // Primero verificar que el perfil existe
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userProfile?.id);
-
-      console.log('Perfil existente:', existingProfile);
-      console.log('Error al buscar:', fetchError);
-
-      if (fetchError) {
-        setEditError(`Error al buscar perfil: ${fetchError.message}`);
-        setEditLoading(false);
-        return;
-      }
-
-      if (!existingProfile || existingProfile.length === 0) {
-        setEditError('No se encontró el perfil para actualizar');
-        setEditLoading(false);
-        return;
-      }
-
-      // Ahora actualizar
-      const { data: updateData, error: profileError } = await supabase
+      // Actualizar perfil en Supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           name: editForm.name,
           email: editForm.email,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userProfile?.id)
-        .select();
-
-      console.log('Resultado de actualización:', { updateData, profileError });
+        .eq('id', session?.user?.id);
 
       if (profileError) {
-        console.error('Error detallado:', profileError);
-        setEditError(`Error al actualizar perfil: ${profileError.message}`);
+        setEditError('Error al actualizar el perfil');
         setEditLoading(false);
         return;
       }
 
-      console.log('Perfil actualizado exitosamente:', updateData);
-      console.log('=== ACTUALIZACIÓN COMPLETADA ===');
-
-      // Si se está cambiando la contraseña, actualizar en Auth
+      // Actualizar contraseña si se proporcionó
       if (editForm.newPassword) {
-        const { error: authError } = await supabase.auth.updateUser({
+        const { error: passwordError } = await supabase.auth.updateUser({
           password: editForm.newPassword
         });
 
-        if (authError) {
-          setEditError(`Error al actualizar contraseña: ${authError.message}`);
+        if (passwordError) {
+          setEditError('Error al actualizar la contraseña');
           setEditLoading(false);
           return;
         }
       }
 
-      // Actualizar el estado local inmediatamente
+      // Actualizar estado local
       setUserProfile(prev => prev ? {
         ...prev,
         name: editForm.name,
         email: editForm.email
       } : null);
 
-      console.log('Estado local actualizado con:', { name: editForm.name, email: editForm.email });
-
-      // Cerrar modal
       setShowEditModal(false);
-      
-      // Esperar un momento y luego recargar
-      setTimeout(() => {
-        const timestamp = new Date().getTime();
-        window.location.href = `/dashboard?t=${timestamp}`;
-      }, 1000);
-      
+      setEditForm({
+        name: editForm.name,
+        email: editForm.email,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      // Recargar la página para reflejar cambios
+      window.location.reload();
     } catch (error) {
-      setEditError(`Error inesperado: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('Error updating profile:', error);
+      setEditError('Error inesperado al actualizar el perfil');
     } finally {
       setEditLoading(false);
     }
   };
 
+  const handlePhysicalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    setEditError('');
+
+    try {
+      // Validar datos
+      if (!physicalForm.weight || !physicalForm.height) {
+        setEditError('Por favor completa todos los campos');
+        setEditLoading(false);
+        return;
+      }
+
+      if (parseInt(physicalForm.weight) < 30 || parseInt(physicalForm.weight) > 300) {
+        setEditError('El peso debe estar entre 30 y 300 kg');
+        setEditLoading(false);
+        return;
+      }
+
+      if (parseInt(physicalForm.height) < 100 || parseInt(physicalForm.height) > 250) {
+        setEditError('La altura debe estar entre 100 y 250 cm');
+        setEditLoading(false);
+        return;
+      }
+
+      // Actualizar datos físicos en Supabase
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          weight: parseInt(physicalForm.weight),
+          height: parseInt(physicalForm.height),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userProfile?.id);
+
+      if (profileError) throw profileError;
+
+      // Actualizar perfil local
+      setUserProfile(prev => prev ? {
+        ...prev,
+        weight: parseInt(physicalForm.weight),
+        height: parseInt(physicalForm.height)
+      } : null);
+
+      setShowPhysicalModal(false);
+      setPhysicalForm({
+        weight: '',
+        height: ''
+      });
+
+      // Recargar la página para reflejar los cambios
+      window.location.reload();
+    } catch (error) {
+      console.error('Error actualizando datos físicos:', error);
+      setEditError('Error al actualizar los datos. Inténtalo de nuevo.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleGoalSubmit = async () => {
+    if (!goalData.targetWeight || !goalData.deadline) {
+      setGoalError('Por favor completa todos los campos');
+      return;
+    }
+
+    setGoalLoading(true);
+    setGoalError('');
+
+    try {
+      if (!userProfile?.id) {
+        throw new Error('No se encontró el ID del usuario');
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          target_weight: parseInt(goalData.targetWeight),
+          goal_deadline: goalData.deadline,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userProfile.id)
+        .select();
+
+      if (error) {
+        console.error('Error de Supabase al actualizar:', error);
+        throw new Error(`Error al actualizar la meta: ${error.message || 'Error desconocido'}`);
+      }
+
+      setUserProfile(prev => prev ? {
+        ...prev,
+        target_weight: parseInt(goalData.targetWeight),
+        goal_deadline: goalData.deadline
+      } : null);
+
+      setShowGoalModal(false);
+      setGoalData({ targetWeight: '', goalType: 'lose', deadline: '' });
+      
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error actualizando meta:', error);
+      setGoalError(error.message || 'Error al actualizar la meta. Inténtalo de nuevo.');
+    } finally {
+      setGoalLoading(false);
+    }
+  };
+
+  const goalLabels: { [key: string]: string } = {
+    'lose_weight': 'Bajar de Peso',
+    'tone': 'Tonificar',
+    'gain_muscle': 'Ganar Músculo',
+    'endurance': 'Resistencia',
+    'hiit': 'HIIT',
+    'strength': 'Fuerza'
+  };
+
   if (status === 'loading' || loading) {
-    return <SimpleLoading message="Cargando perfil..." size="lg" />;
+    return <QuickLoading message="Cargando tu perfil..." duration={1500} />;
   }
 
   if (status === 'unauthenticated') {
-    router.push('/');
     return null;
   }
 
-  if (!session?.user || !userProfile) {
-    return null;
+  if (!userProfile) {
+    return <QuickLoading message="Cargando tu perfil..." duration={1500} />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#164151]/80 via-[#29839c]/70 to-[#29839c]/60">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-transparent border-b border-white/20">
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-white/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-bold text-white">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            >
+              <h1 className="text-2xl font-black text-black">
                 ROGER<span className="text-[#85ea10]">BOX</span>
               </h1>
-            </div>
-            
+            </button>
+
             {/* Back Button */}
             <button
               onClick={() => router.back()}
-              className="flex items-center space-x-2 text-white/60 hover:text-white transition-colors"
+              className="flex items-center space-x-2 text-gray-600 dark:text-white/70 hover:text-[#85ea10] transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>Volver</span>
+              <span className="font-medium">Volver</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-[#85ea10] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-12 h-12 text-black" />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">{userProfile.name}</h2>
-                <p className="text-white/60 mb-6">{userProfile.email}</p>
-                
-                <button 
-                  onClick={handleEditProfile}
-                  className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Profile Header */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-8">
+          <div className="flex items-center space-x-6">
+            <div className="w-16 h-16 bg-[#85ea10] rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-black" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{userProfile.name}</h1>
+              <p className="text-gray-600 dark:text-white/60 text-sm">{userProfile.email}</p>
+            </div>
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Editar Perfil</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Information Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Personal Information */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="flex items-center space-x-3 mb-4">
+              <User className="w-5 h-5 text-[#85ea10]" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Información Personal</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <Mail className="w-4 h-4 text-gray-600 dark:text-white/60" />
+                <span className="text-gray-700 dark:text-white/80 text-sm break-all">{userProfile.email}</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Weight className="w-4 h-4 text-gray-600 dark:text-white/60" />
+                <span className="text-gray-700 dark:text-white/80 text-sm">{userProfile.weight} kg</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Ruler className="w-4 h-4 text-gray-600 dark:text-white/60" />
+                <span className="text-gray-700 dark:text-white/80 text-sm">{userProfile.height} cm</span>
+              </div>
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    setPhysicalForm({
+                      weight: userProfile.weight.toString(),
+                      height: userProfile.height.toString()
+                    });
+                    setShowPhysicalModal(true);
+                  }}
+                  className="flex items-center space-x-2 text-[#85ea10] hover:text-[#7dd30f] transition-colors text-sm font-medium"
                 >
-                  <Edit className="w-5 h-5" />
-                  <span>Editar Perfil</span>
+                  <Edit className="w-4 h-4" />
+                  <span>Actualizar peso y altura</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Profile Details */}
-          <div className="lg:col-span-2">
-            <div className="space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
-                  <User className="w-6 h-6" />
-                  <span>Información Personal</span>
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Mail className="w-5 h-5 text-[#85ea10]" />
-                      <div>
-                        <p className="text-white/60 text-sm">Email</p>
-                        <p className="text-white font-medium">{userProfile.email}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <Weight className="w-5 h-5 text-[#85ea10]" />
-                      <div>
-                        <p className="text-white/60 text-sm">Peso</p>
-                        <p className="text-white font-medium">{userProfile.weight || 0} kg</p>
-                      </div>
-                    </div>
+          {/* Goals */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Trophy className="w-5 h-5 text-[#85ea10]" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Mis Metas</h2>
+            </div>
+            <button 
+              onClick={() => setShowGoalModal(true)}
+              className="text-xs bg-[#85ea10] text-black px-3 py-1 rounded-full font-medium hover:bg-[#7dd30f] transition-colors"
+            >
+              + Agregar Meta
+            </button>
+          </div>
+
+          {/* Racha Destacada */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-[#85ea10]/10 to-[#85ea10]/5 rounded-xl border border-[#85ea10]/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-[#85ea10]/20 rounded-full flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-[#85ea10]" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Mi Racha de Clases</div>
+                  <div className="text-xs text-gray-600 dark:text-white/60">
+                    {userProfile.last_class_date ? 
+                      `Última clase: ${new Date(userProfile.last_class_date).toLocaleDateString('es-ES')}` : 
+                      'Aún no has tomado clases'
+                    }
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Ruler className="w-5 h-5 text-[#85ea10]" />
-                      <div>
-                        <p className="text-white/60 text-sm">Altura</p>
-                        <p className="text-white font-medium">{userProfile.height || 0} cm</p>
-                      </div>
-                    </div>
-                    
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-[#85ea10]">
+                  {userProfile.streak_days || 0}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-white/60">
+                  {userProfile.streak_days && userProfile.streak_days > 0 ? 'días consecutivos' : 'días'}
+                </div>
+              </div>
+            </div>
+            
+            {userProfile.streak_days && userProfile.streak_days > 0 && (
+              <div className="mt-3 flex items-center space-x-2">
+                <div className="w-2 h-2 bg-[#85ea10] rounded-full animate-pulse"></div>
+                <span className="text-xs text-[#85ea10] font-medium">
+                  ¡Sigue así! Mantén tu racha activa
+                </span>
+              </div>
+            )}
+            
+            {(!userProfile.streak_days || userProfile.streak_days === 0) && (
+              <div className="mt-3">
+                <button className="text-[#85ea10] hover:text-[#7dd30f] text-sm font-medium transition-colors">
+                  Comenzar mi primera clase →
+                </button>
+              </div>
+            )}
+          </div>
+            
+            {/* Meta de Peso */}
+            <div className="space-y-3">
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <Weight className="w-4 h-4 text-[#85ea10]" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Bajar de Peso</span>
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-white/60">Activa</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-gray-600 dark:text-white/60">Peso actual:</span>
+                    <span className="text-gray-900 dark:text-white font-medium ml-1">
+                      {userProfile.current_weight || userProfile.weight} kg
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-white/60">Meta:</span>
+                    <span className="text-gray-900 dark:text-white font-medium ml-1">
+                      {userProfile.target_weight || 'No definida'} kg
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-white/60">Progreso:</span>
+                    <span className="text-[#85ea10] font-medium ml-1">
+                      {userProfile.weight_progress_percentage || 0}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-white/60">Fecha límite:</span>
+                    <span className="text-gray-900 dark:text-white font-medium ml-1">
+                      {userProfile.goal_deadline ? 
+                        new Date(userProfile.goal_deadline).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) : 
+                        'No definida'
+                      }
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 dark:bg-white/20 rounded-full h-2">
+                    <div 
+                      className="bg-[#85ea10] h-2 rounded-full transition-all duration-300" 
+                      style={{width: `${userProfile.weight_progress_percentage || 0}%`}}
+                    ></div>
                   </div>
                 </div>
               </div>
 
-              {/* Goals */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
-                  <Trophy className="w-6 h-6" />
-                  <span>Mis Objetivos</span>
-                </h3>
-                
-                <div className="flex flex-wrap gap-3">
-                  {userProfile.goals && userProfile.goals.length > 0 ? (
-                    userProfile.goals.map((goal, index) => {
-                      const goalLabels: { [key: string]: string } = {
-                        'lose_weight': 'Bajar de Peso',
-                        'tone': 'Tonificar',
-                        'gain_muscle': 'Ganar Músculo',
-                        'flexibility': 'Flexibilidad',
-                        'strength': 'Fuerza',
-                        'endurance': 'Resistencia'
-                      };
-                      
-                      const displayText = goalLabels[goal] || goal.replace('_', ' ');
-                      
-                      return (
-                        <span
-                          key={index}
-                          className="bg-[#85ea10]/20 text-[#85ea10] px-4 py-2 rounded-full text-sm font-medium"
-                        >
-                          {displayText}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <p className="text-white/60">No hay objetivos definidos</p>
+              {/* Meta de Tonificación - Solo mostrar si existe */}
+              {userProfile.goals && userProfile.goals.includes('tone') && (
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-4 h-4 text-[#85ea10]" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Tonificar Músculos</span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-white/60">Activa</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-600 dark:text-white/60">Objetivo:</span>
+                      <span className="text-gray-900 dark:text-white font-medium ml-1">Definir músculos</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-white/60">Progreso:</span>
+                      <span className="text-[#85ea10] font-medium ml-1">0%</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-white/60">Fecha límite:</span>
+                      <span className="text-gray-900 dark:text-white font-medium ml-1">
+                        {userProfile.goal_deadline ? 
+                          new Date(userProfile.goal_deadline).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) : 
+                          'No definida'
+                        }
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-white/60">Racha:</span>
+                      <span className="text-[#85ea10] font-medium ml-1">{userProfile.streak_days || 0} días</span>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 dark:bg-white/20 rounded-full h-2">
+                      <div className="bg-[#85ea10] h-2 rounded-full transition-all duration-300" style={{width: '0%'}}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+
+          {/* Payment Management */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="flex items-center space-x-3 mb-4">
+              <Target className="w-5 h-5 text-[#85ea10]" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Gestión de Pagos</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 dark:text-white/80 text-sm">Tarjeta Guardada</span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-600">
+                  **** 1234
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 dark:text-white/80 text-sm">Cursos Comprados</span>
+                <span className="text-gray-900 dark:text-white text-sm font-medium">2 cursos</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 dark:text-white/80 text-sm">Gasto Total</span>
+                <span className="text-gray-900 dark:text-white text-sm font-medium">$158</span>
+              </div>
+              <button className="w-full mt-3 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-4 py-2 rounded-lg transition-colors text-sm">
+                Gestionar Pagos
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* My Content Section */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <div className="flex items-center space-x-3 mb-6">
+            <Bookmark className="w-5 h-5 text-[#85ea10]" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Mi Contenido</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Cursos Comprados */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <Play className="w-4 h-4 text-[#85ea10]" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">Cursos Comprados</h3>
+              </div>
+              {favoritesLoading ? (
+                <div className="text-gray-600 dark:text-white/60 text-sm">Cargando...</div>
+              ) : favorites.courses.length > 0 ? (
+                <div className="space-y-2">
+                  {favorites.courses.slice(0, 3).map((course: any, index: number) => (
+                    <div key={index} className="bg-white/10 rounded-lg p-3">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        {course.title || 'Curso sin nombre'}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
+                        {course.description || 'Sin descripción'}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-[#85ea10]">
+                          {course.category || 'Sin categoría'}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-white/60">
+                          ${course.price}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {favorites.courses.length > 3 && (
+                    <div className="text-xs text-gray-600 dark:text-white/60">
+                      +{favorites.courses.length - 3} más
+                    </div>
                   )}
                 </div>
-              </div>
+              ) : (
+                <div className="text-gray-600 dark:text-white/60 text-sm">No has comprado cursos aún</div>
+              )}
+            </div>
 
-              {/* Membership Status */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
-                  <Calendar className="w-6 h-6" />
-                  <span>Estado de Membresía</span>
-                </h3>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/60 text-sm">Estado Actual</p>
-                    <p className="text-white font-medium capitalize">
-                      {userProfile.membership_status === 'active' ? 'Activa' : 'Inactiva'}
-                    </p>
+            {/* Blog Favoritos */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <FileText className="w-4 h-4 text-[#85ea10]" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">Blog Favoritos</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="bg-white/10 rounded-lg p-3 opacity-60">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    "5 Tips para Quemar Grasa"
                   </div>
-                  
-                  <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                    userProfile.membership_status === 'active' 
-                      ? 'bg-green-500/20 text-green-400' 
-                      : 'bg-red-500/20 text-red-400'
-                  }`}>
-                    {userProfile.membership_status === 'active' ? 'Activa' : 'Inactiva'}
+                  <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
+                    Consejos prácticos para acelerar tu metabolismo
                   </div>
+                  <div className="text-xs text-[#85ea10]">
+                    Nutrición
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-white/40 text-center">
+                  🔒 Funcionalidad Premium
+                </div>
+              </div>
+            </div>
+
+            {/* Plan Nutricional */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <Utensils className="w-4 h-4 text-[#85ea10]" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">Plan Nutricional</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-gradient-to-r from-[#85ea10]/20 to-[#85ea10]/10 rounded-lg p-3 border border-[#85ea10]/30">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Plan Personalizado
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-white/60 mb-2">
+                    Diseñado específicamente para tus objetivos
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#85ea10] font-medium">$49/mes</span>
+                    <button className="text-xs bg-[#85ea10] text-black px-3 py-1 rounded-full font-medium hover:bg-[#7dd30f] transition-colors">
+                      Solicitar
+                    </button>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-white/40 text-center">
+                  ✨ Disponible para ti
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Modal de Edición */}
+          {/* Sesión 1:1 con RogerBox */}
+          <div className="mt-6 bg-gradient-to-r from-[#85ea10]/10 to-[#85ea10]/5 rounded-xl p-4 border border-[#85ea10]/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-[#85ea10] rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-black" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Sesión 1:1 con RogerBox</h3>
+                  <p className="text-xs text-gray-600 dark:text-white/60">Mentoría personalizada con Roger Barreto</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold text-gray-900 dark:text-white">$150/sesión</div>
+                <button className="mt-1 text-xs bg-[#85ea10] text-black px-4 py-2 rounded-full font-medium hover:bg-[#7dd30f] transition-colors">
+                  Solicitar Sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#164151]/90 via-[#29839c]/80 to-[#29839c]/70 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/20">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-white">Editar Perfil</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Editar Perfil</h2>
               <button
-                onClick={handleCloseModal}
-                className="text-white/60 hover:text-white transition-colors"
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              {/* Nombre */}
+            <form onSubmit={handleEditProfile} className="space-y-4">
+              {editError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{editError}</p>
+                </div>
+              )}
+
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Nombre Completo
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                  Nombre
                 </label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-transparent placeholder-white/60 text-white"
-                  placeholder="Ingresa tu nombre completo"
-                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                  placeholder="Tu nombre"
                 />
               </div>
 
-              {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Correo Electrónico
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                  Email
                 </label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-transparent placeholder-white/60 text-white"
-                  placeholder="tu.email@ejemplo.com"
-                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                  placeholder="tu@email.com"
                 />
               </div>
 
-              {/* Nueva Contraseña */}
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                   Nueva Contraseña (opcional)
                 </label>
                 <div className="relative">
                   <input
-                    type={showPasswords.new ? "text" : "password"}
+                    type={showPasswords.new ? 'text' : 'password'}
                     value={editForm.newPassword}
                     onChange={(e) => setEditForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-transparent placeholder-white/60 text-white"
-                    placeholder="Mínimo 6 caracteres"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                    placeholder="Nueva contraseña"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Confirmar Contraseña */}
-              {editForm.newPassword && (
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Confirmar Nueva Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.confirm ? "text" : "password"}
-                      value={editForm.confirmPassword}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-transparent placeholder-white/60 text-white"
-                      placeholder="Repite la nueva contraseña"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
-                    >
-                      {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                  Confirmar Nueva Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPasswords.confirm ? 'text' : 'password'}
+                    value={editForm.confirmPassword}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                    placeholder="Confirmar nueva contraseña"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
+              </div>
 
-              {/* Error Message */}
-              {editError && (
-                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
-                  <p className="text-red-300 text-sm">{editError}</p>
-                </div>
-              )}
-
-              {/* Botones */}
-              <div className="flex space-x-4">
+              <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 px-6 py-3 border border-white/20 text-white/80 rounded-lg hover:bg-white/10 transition-colors"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="flex-1 bg-[#85ea10] hover:bg-[#7dd30f] disabled:bg-gray-500 text-black font-bold px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  className="flex-1 bg-[#85ea10] hover:bg-[#7dd30f] disabled:bg-[#85ea10]/50 disabled:opacity-70 text-black font-bold px-4 py-2 rounded-lg transition-colors"
                 >
-                  {editLoading ? (
+                  {editLoading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para actualizar datos físicos */}
+      {showPhysicalModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Actualizar Datos Físicos
+              </h2>
+              <button
+                onClick={() => setShowPhysicalModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePhysicalSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Peso (kg)
+                </label>
+                <input
+                  type="number"
+                  value={physicalForm.weight}
+                  onChange={(e) => setPhysicalForm(prev => ({ ...prev, weight: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="Ej: 70"
+                  min="30"
+                  max="300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Altura (cm)
+                </label>
+                <input
+                  type="number"
+                  value={physicalForm.height}
+                  onChange={(e) => setPhysicalForm(prev => ({ ...prev, height: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="Ej: 175"
+                  min="100"
+                  max="250"
+                />
+              </div>
+
+              {editError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{editError}</p>
+                </div>
+              )}
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowPhysicalModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading || !physicalForm.weight || !physicalForm.height}
+                  className="flex-1 px-4 py-2 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {editLoading ? 'Actualizando...' : 'Actualizar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para establecer meta */}
+      {showGoalModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Establece tu Meta
+              </h2>
+              <button
+                onClick={() => setShowGoalModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleGoalSubmit(); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Peso Objetivo (kg)
+                </label>
+                <input
+                  type="number"
+                  value={goalData.targetWeight}
+                  onChange={(e) => setGoalData(prev => ({ ...prev, targetWeight: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="Ej: 65"
+                  min="30"
+                  max="300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Fecha Límite
+                </label>
+                <input
+                  type="date"
+                  value={goalData.deadline}
+                  onChange={(e) => setGoalData(prev => ({ ...prev, deadline: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+
+              {goalError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{goalError}</p>
+                </div>
+              )}
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowGoalModal(false)}
+                  disabled={goalLoading}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={goalLoading || !goalData.targetWeight || !goalData.deadline}
+                  className="flex-1 px-4 py-2 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {goalLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                      <span>Guardando...</span>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                      Estableciendo...
                     </>
                   ) : (
-                    'Guardar Cambios'
+                    'Establecer Meta'
                   )}
                 </button>
               </div>
@@ -541,6 +1000,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
