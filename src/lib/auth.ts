@@ -37,37 +37,33 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // Obtener el perfil del usuario
+          // Obtener el perfil del usuario (opcional para usuarios recién registrados)
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
-            .single()
+            .maybeSingle()
 
           console.log('Profile fetch result:', { profile, profileError })
 
+          // Si hay error al obtener el perfil, no es crítico para el login
           if (profileError) {
-            console.error('Profile fetch error:', profileError)
-            return null
+            console.log('Profile fetch error (non-critical):', profileError)
           }
 
-          if (!profile) {
-            console.log('No profile found')
-            return null
-          }
-
-          console.log('Login successful for user:', profile.name)
+          console.log('Login successful for user:', data.user.email)
           
+          // Retornar datos básicos del usuario, con o sin perfil
           return {
             id: data.user.id,
             email: data.user.email,
-            name: profile.name,
-            weight: profile.weight,
-            height: profile.height,
-            gender: profile.gender,
-            goals: profile.goals,
-            targetWeight: profile.target_weight,
-            membershipStatus: profile.membership_status,
+            name: profile?.name || data.user.user_metadata?.name || 'Usuario',
+            weight: profile?.weight || 70,
+            height: profile?.height || 170,
+            gender: profile?.gender || 'other',
+            goals: profile?.goals || [],
+            targetWeight: profile?.target_weight || null,
+            membershipStatus: profile?.membership_status || 'inactive',
           }
         } catch (error) {
           console.error('Auth error:', error)

@@ -14,8 +14,10 @@ interface UserProfile {
   height: number;
   weight: number;
   gender: string;
+  birthYear?: number;
   goals: string[];
   target_weight: number | null;
+  dietaryHabits?: string[];
   membership_status: string;
 }
 
@@ -32,7 +34,7 @@ export default function OnboardingPage() {
   }, [status, router]);
 
   const handleComplete = async (profile: UserProfile) => {
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session?.user?.id) {
       console.error('No hay sesión de usuario');
       return;
     }
@@ -40,27 +42,88 @@ export default function OnboardingPage() {
     setIsUpdating(true);
 
     try {
-      console.log('Actualizando perfil con datos:', profile);
+      console.log('=== DEBUG ONBOARDING ===');
+      console.log('Session user ID:', session.user.id);
+      console.log('Session user email:', session.user.email);
+      console.log('Profile data:', profile);
+      console.log('========================');
 
-      // Actualizar el perfil en Supabase
-      const { error } = await supabase
+      // Primero intentar actualizar el perfil existente
+      const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
-        .update({
+        .select('id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('Error verificando perfil existente:', selectError);
+        alert('Error al verificar el perfil. Intenta de nuevo.');
+        return;
+      }
+
+      let error;
+      if (existingProfile) {
+        // Actualizar perfil existente
+        console.log('Actualizando perfil existente...');
+        const updateData = {
+          name: profile.name || session.user.name || 'Usuario',
           height: profile.height,
           weight: profile.weight,
           gender: profile.gender,
           goals: profile.goals,
-          target_weight: profile.targetWeight
-        })
-        .eq('email', session.user.email);
+          updated_at: new Date().toISOString()
+        };
+
+        // Solo agregar campos si existen
+        if (profile.birthYear) {
+          updateData.birth_year = profile.birthYear;
+        }
+        if (profile.dietaryHabits && profile.dietaryHabits.length > 0) {
+          updateData.dietary_habits = profile.dietaryHabits;
+        }
+
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', session.user.id);
+        error = updateError;
+      } else {
+        // Crear nuevo perfil
+        console.log('Creando nuevo perfil...');
+        const insertData = {
+          id: session.user.id,
+          name: profile.name || session.user.name || 'Usuario',
+          email: session.user.email,
+          height: profile.height,
+          weight: profile.weight,
+          gender: profile.gender,
+          goals: profile.goals,
+          membership_status: 'inactive',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Solo agregar campos si existen
+        if (profile.birthYear) {
+          insertData.birth_year = profile.birthYear;
+        }
+        if (profile.dietaryHabits && profile.dietaryHabits.length > 0) {
+          insertData.dietary_habits = profile.dietaryHabits;
+        }
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(insertData);
+        error = insertError;
+      }
 
       if (error) {
-        console.error('Error actualizando perfil:', error);
+        console.error('Error guardando perfil:', error);
         alert('Error al guardar el perfil. Intenta de nuevo.');
         return;
       }
 
-      console.log('Perfil actualizado exitosamente');
+      console.log('Perfil guardado exitosamente');
       
       // Redirigir al dashboard
       router.push('/dashboard');
@@ -82,8 +145,12 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#164151]/80 via-[#29839c]/70 to-[#29839c]/60">
-      <Onboarding onComplete={handleComplete} isUpdating={isUpdating} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <Onboarding 
+        onComplete={handleComplete} 
+        isUpdating={isUpdating}
+        userName={session?.user?.name || 'Usuario'}
+      />
     </div>
   );
 }
