@@ -738,7 +738,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-      </div>image.png√
+      </div>
 
       {/* Course Creator Modal */}
       {showCourseCreator && (

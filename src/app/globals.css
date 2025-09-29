@@ -24,3 +24,38 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
+
+/* Asegurar que las clases de Tailwind funcionen correctamente */
+.font-bold {
+  font-weight: 700 !important;
+}
+
+.font-semibold {
+  font-weight: 600 !important;
+}
+
+.font-black {
+  font-weight: 900 !important;
+}
+
+.font-medium {
+  font-weight: 500 !important;
+}
+
+/* Estilos específicos para títulos importantes */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+}
+
+/* Asegurar que los títulos del dashboard sean bold */
+.dashboard-title {
+  font-weight: 700 !important;
+}
+
+.course-title {
+  font-weight: 700 !important;
+}
+
+.price-text {
+  font-weight: 700 !important;
+}

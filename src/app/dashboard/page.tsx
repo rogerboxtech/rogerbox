@@ -3,10 +3,11 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Play, Clock, Users, Star, Filter, Search, User, LogOut, ChevronDown, ShoppingCart, Heart, BookOpen, Target, Zap, Utensils, ChefHat, Award, TrendingUp, Trophy, Weight, X, Info, Settings } from 'lucide-react';
+import { Play, Clock, Users, Star, Filter, Search, User, LogOut, ChevronDown, ShoppingCart, Heart, BookOpen, Target, Zap, Utensils, ChefHat, Award, TrendingUp, Trophy, Weight, X, Info, Settings, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Footer from '@/components/Footer';
 import QuickLoading from '@/components/QuickLoading';
+import { useCoursesCache } from '@/hooks/useCoursesCache';
 
 interface UserProfile {
   id: string;
@@ -59,8 +60,23 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [realCourses, setRealCourses] = useState<Course[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  // Usar el hook de caché para cursos
+  const {
+    courses: realCourses,
+    loading: loadingCourses,
+    currentPage,
+    totalPages,
+    totalCount,
+    error: coursesError,
+    changePage,
+    refresh: refreshCourses
+  } = useCoursesCache(userProfile);
+
+  // Debug logs
+  console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
+  console.log('📊 Dashboard: loadingCourses:', loadingCourses);
+  console.log('📊 Dashboard: currentPage:', currentPage);
+  console.log('📊 Dashboard: totalPages:', totalPages);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalData, setGoalData] = useState({
     targetWeight: '',
@@ -119,58 +135,7 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  // Cargar cursos reales
-  useEffect(() => {
-    loadCourses();
-  }, [userProfile]); // Recargar cuando cambie el perfil del usuario
-
-  const loadCourses = async () => {
-    try {
-      setLoadingCourses(true);
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Transformar los datos para que coincidan con la interfaz
-      const transformedCourses = (data || []).map(course => {
-        // Mapear categorías de la base de datos a las categorías del usuario
-        const categoryMap: { [key: string]: string } = {
-          'Transformación Intensa': 'lose_weight',
-          'HIIT Avanzado': 'hiit',
-          'Cardio Intenso': 'endurance',
-          'Fuerza Funcional': 'strength',
-          'Entrenamiento en Casa': 'tone',
-          'Rutina Matutina': 'lose_weight',
-          'Sesión Nocturna': 'tone',
-          'Entrenamiento Express': 'hiit',
-          'Complementos': 'all'
-        };
-        
-        const mappedCategory = categoryMap[course.category] || 'all';
-        
-        return {
-          ...course,
-          instructor: 'RogerBox',
-          lessons: 1, // Por ahora, asumimos 1 lección por curso
-          isRecommended: userProfile?.goals?.includes(mappedCategory) || false,
-          thumbnail: course.preview_image,
-          duration: `${course.duration_days} días`,
-          students: course.students_count,
-          category: mappedCategory // Usar la categoría mapeada para filtros
-        };
-      });
-      
-      setRealCourses(transformedCourses);
-    } catch (error) {
-      console.error('Error loading courses:', error);
-    } finally {
-      setLoadingCourses(false);
-    }
-  };
+  // La lógica de carga de cursos ahora está en el hook useCoursesCache
 
   const categories = [
     { id: 'all', name: 'Todos', icon: '🎯' },
@@ -182,99 +147,12 @@ export default function DashboardPage() {
     { id: 'strength', name: 'Fuerza', icon: '💪' }
   ];
 
-  // Cursos de muestra (comentados para usar cursos reales)
+  // Los cursos ahora vienen del hook useCoursesCache
+  /*
   const sampleCourses: Course[] = [
-    {
-      id: '1',
-      title: 'Transformación Total 90 Días',
-      instructor: 'RogerBox',
-      category: 'lose_weight',
-      duration: '90 días',
-      level: 'Intermedio',
-      rating: 4.9,
-      students: 2847,
-      price: 89,
-      thumbnail: '/images/curso-transformacion.jpg',
-      description: 'Programa completo de transformación física en 90 días con desbloqueo diario de clases.',
-      lessons: 90,
-      isRecommended: userProfile?.goals?.includes('lose_weight') || false
-    },
-    {
-      id: '2',
-      title: 'HIIT Quema Grasa',
-      instructor: 'RogerBox',
-      category: 'hiit',
-      duration: '21 días',
-      level: 'Avanzado',
-      rating: 4.7,
-      students: 1456,
-      price: 69,
-      thumbnail: '/images/curso-hiit.jpg',
-      description: 'Entrenamiento de alta intensidad para quemar grasa y tonificar músculos.',
-      lessons: 21,
-      isRecommended: userProfile?.goals?.includes('hiit') || false
-    },
-    {
-      id: '3',
-      title: 'Fuerza y Músculo',
-      instructor: 'RogerBox',
-      category: 'strength',
-      duration: '60 días',
-      level: 'Intermedio',
-      rating: 4.8,
-      students: 1923,
-      price: 79,
-      thumbnail: '/images/curso-fuerza.jpg',
-      description: 'Desarrolla fuerza muscular con ejercicios progresivos y técnicas avanzadas.',
-      lessons: 60,
-      isRecommended: userProfile?.goals?.includes('strength') || false
-    },
-    {
-      id: '4',
-      title: 'Cardio Intenso',
-      instructor: 'RogerBox',
-      category: 'endurance',
-      duration: '30 días',
-      level: 'Avanzado',
-      rating: 4.9,
-      students: 2156,
-      price: 59,
-      thumbnail: '/images/curso-cardio.jpg',
-      description: 'Entrenamientos cardiovasculares de alta intensidad para llevar tu resistencia al límite.',
-      lessons: 30,
-      isRecommended: userProfile?.goals?.includes('endurance') || false
-    },
-    {
-      id: '5',
-      title: 'Tonificación Total',
-      instructor: 'RogerBox',
-      category: 'tone',
-      duration: '45 días',
-      level: 'Intermedio',
-      rating: 4.6,
-      students: 1543,
-      price: 69,
-      thumbnail: '/images/curso-tonificacion.jpg',
-      description: 'Define y tonifica tu cuerpo con ejercicios específicos para cada grupo muscular.',
-      lessons: 45,
-      isRecommended: userProfile?.goals?.includes('tone') || false
-    },
-    {
-      id: '6',
-      title: 'Ganancia Muscular',
-      instructor: 'RogerBox',
-      category: 'gain_muscle',
-      duration: '75 días',
-      level: 'Avanzado',
-      rating: 4.8,
-      students: 987,
-      price: 99,
-      thumbnail: '/images/curso-musculo.jpg',
-      description: 'Maximiza tu crecimiento muscular con ejercicios de alta intensidad.',
-      lessons: 75,
-      isRecommended: userProfile?.goals?.includes('gain_muscle') || false
-    }
+    // Cursos de muestra comentados - ahora usamos datos reales
   ];
+  */
 
   const filteredCourses = realCourses.filter(course => {
     const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
@@ -502,9 +380,11 @@ export default function DashboardPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Racha de Clases */}
-              <div className="bg-white/5 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/10 rounded-xl p-4 border border-[#85ea10]/30 shadow-lg">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Trophy className="w-4 h-4 text-[#85ea10]" />
+                  <div className="p-2 bg-[#85ea10]/30 rounded-lg">
+                    <Trophy className="w-4 h-4 text-[#85ea10]" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Racha Actual</h3>
                 </div>
                 <div className="text-3xl font-bold text-[#85ea10] mb-1">
@@ -520,9 +400,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Meta de Peso */}
-              <div className="bg-white/5 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-xl p-4 border border-blue-400/30 shadow-lg">
                 <div className="flex items-center space-x-2 mb-1">
-                  <Weight className="w-4 h-4 text-[#85ea10]" />
+                  <div className="p-2 bg-blue-500/30 rounded-lg">
+                    <Weight className="w-4 h-4 text-blue-600" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Meta de Peso</h3>
                 </div>
                 
@@ -535,7 +417,7 @@ export default function DashboardPage() {
                       Progreso: {userProfile.weight_progress_percentage || 0}%
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-white/20 rounded-full h-2">
-                      <div className="bg-[#85ea10] h-2 rounded-full" style={{
+                      <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full" style={{
                         width: `${userProfile.weight_progress_percentage || 0}%`
                       }}></div>
                     </div>
@@ -555,7 +437,7 @@ export default function DashboardPage() {
                           });
                           setShowGoalModal(true);
                         }}
-                        className="text-[#85ea10] hover:text-[#7dd30f] text-xs font-medium transition-colors"
+                        className="text-blue-600 hover:text-blue-700 text-xs font-medium bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors"
                       >
                         Actualizar Meta
                       </button>
@@ -577,9 +459,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Recomendación de Curso */}
-              <div className="bg-white/5 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-400/10 rounded-xl p-4 border border-purple-400/30 shadow-lg">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Play className="w-4 h-4 text-[#85ea10]" />
+                  <div className="p-2 bg-purple-500/30 rounded-lg">
+                    <Play className="w-4 h-4 text-purple-600" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Recomendación</h3>
                 </div>
                 <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
@@ -588,7 +472,7 @@ export default function DashboardPage() {
                 <div className="text-xs text-gray-600 dark:text-white/60 mb-2">
                   Perfecto para tu meta de bajar 10kg
                 </div>
-                <div className="text-xs text-[#85ea10] font-medium">
+                <div className="text-xs text-purple-600 font-medium">
                   Podrías lograrlo en 3 meses
                 </div>
               </div>
@@ -693,32 +577,74 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[#85ea10] font-semibold">{course.level}</span>
-                      <span className="text-sm text-gray-500 dark:text-white/60">{course.category}</span>
+                    {/* Información de calorías y clases */}
+                    <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                    <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.description}</p>
+                    
+                    {/* Cuadro verde unificado */}
+                    <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4">
+                      {/* Categoría del curso */}
+                      <div className="flex items-center justify-center mb-2">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
+                          Bajar de peso
+                        </span>
+                      </div>
+                      
+                      {/* Mensaje motivacional */}
+                      <div className="flex items-center justify-center space-x-2 mb-3">
+                        <Zap className="w-4 h-4 text-[#85ea10]" />
+                        <span className="text-sm font-semibold text-gray-700 dark:text-white">
+                          ¡Sin límites! Para todos los niveles
+                        </span>
+                      </div>
+                      
+                      {/* Estadísticas del curso */}
+                      <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
+                        <span className="flex items-center space-x-1">
+                          <Zap className="w-3 h-3 text-[#85ea10]" />
+                          <span>{course.calories_burned || 0} cal</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Play className="w-3 h-3" />
+                          <span>{course.lessons || 1} clases</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{course.duration_days || 15} días</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{course.students?.toLocaleString() || 0} personas</span>
+                        </span>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                    <p className="text-gray-600 dark:text-white/70 text-sm mb-4">{course.description}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500 dark:text-white/60 mb-4">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{course.duration}</span>
+                    <div className="space-y-3">
+                      {/* Precio */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center space-x-2 mb-1">
+                          <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                            ${course.price?.toLocaleString('es-CO') || '0'}
+                          </span>
+                          {course.discount_percentage && course.discount_percentage > 0 && (
+                            <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                              ${Math.round(course.price / (1 - course.discount_percentage / 100)).toLocaleString('es-CO')}
+                            </span>
+                          )}
+                        </div>
+                        {course.discount_percentage && course.discount_percentage > 0 && (
+                          <span className="text-sm text-[#85ea10] font-semibold">
+                            {course.discount_percentage}% de descuento
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{course.students.toLocaleString()} estudiantes</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                        ${course.price}
-                      </div>
+                      
+                      {/* Botón */}
                       <button
                         onClick={() => router.push(`/course/${course.id}`)}
-                        className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                        className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                       >
                         <ShoppingCart className="w-4 h-4" />
-                        <span>Ver Curso</span>
+                        <span>¡Comenzar Ahora!</span>
                       </button>
                     </div>
                   </div>
@@ -730,7 +656,7 @@ export default function DashboardPage() {
 
         {/* All Courses */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-2xl font-bold dashboard-title text-gray-900 dark:text-white mb-6">
             Todos los Cursos
           </h2>
           {loadingCourses ? (
@@ -739,9 +665,16 @@ export default function DashboardPage() {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Cargando cursos...
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Estamos preparando los mejores cursos para ti
               </p>
+              <button
+                onClick={refreshCourses}
+                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Recargar</span>
+              </button>
             </div>
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
@@ -782,37 +715,126 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-[#85ea10] font-semibold">{course.level}</span>
-                    <span className="text-sm text-gray-500 dark:text-white/60">{course.category}</span>
+                  {/* Información de calorías y clases */}
+                  <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                  <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.description}</p>
+                  
+                  {/* Cuadro verde unificado */}
+                  <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4">
+                    {/* Categoría del curso */}
+                    <div className="flex items-center justify-center mb-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
+                        Bajar de peso
+                      </span>
+                    </div>
+                    
+                    {/* Mensaje motivacional */}
+                    <div className="flex items-center justify-center space-x-2 mb-3">
+                      <Zap className="w-4 h-4 text-[#85ea10]" />
+                      <span className="text-sm font-semibold text-gray-700 dark:text-white">
+                        ¡Sin límites! Para todos los niveles
+                      </span>
+                    </div>
+                    
+                    {/* Estadísticas del curso */}
+                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
+                      <span className="flex items-center space-x-1">
+                        <Zap className="w-3 h-3 text-[#85ea10]" />
+                        <span>{course.calories_burned || 0} cal</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Play className="w-3 h-3" />
+                        <span>{course.lessons || 1} clases</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{course.duration_days || 15} días</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Users className="w-3 h-3" />
+                        <span>{course.students?.toLocaleString() || 0} personas</span>
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                  <p className="text-gray-600 dark:text-white/70 text-sm mb-4">{course.description}</p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 dark:text-white/60 mb-4">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{course.duration}</span>
+                  <div className="space-y-3">
+                    {/* Precio */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-1">
+                        <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                          ${course.price?.toLocaleString('es-CO') || '0'}
+                        </span>
+                        {course.discount_percentage && course.discount_percentage > 0 && (
+                          <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                            ${Math.round(course.price / (1 - course.discount_percentage / 100)).toLocaleString('es-CO')}
+                          </span>
+                        )}
+                      </div>
+                      {course.discount_percentage && course.discount_percentage > 0 && (
+                        <span className="text-sm text-[#85ea10] font-semibold">
+                          {course.discount_percentage}% de descuento
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="w-4 h-4" />
-                      <span>{course.students.toLocaleString()} estudiantes</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      ${course.price}
-                    </div>
+                    
+                    {/* Botón */}
                     <button
                       onClick={() => router.push(`/course/${course.id}`)}
-                      className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ShoppingCart className="w-4 h-4" />
-                      <span>Ver Curso</span>
+                      <span>¡Comenzar Ahora!</span>
                     </button>
                   </div>
                 </div>
               </div>
             ))}
+            </div>
+          )}
+
+          {/* Paginación */}
+          {!loadingCourses && filteredCourses.length > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-center space-x-4 mt-8">
+              <button
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Anterior</span>
+              </button>
+              
+              <div className="flex items-center space-x-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => changePage(page)}
+                    className={`px-3 py-2 rounded-lg transition-colors ${
+                      page === currentPage
+                        ? 'bg-[#85ea10] text-black font-bold'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <span>Siguiente</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Información de paginación */}
+          {!loadingCourses && filteredCourses.length > 0 && (
+            <div className="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Mostrando {filteredCourses.length} de {totalCount} cursos
+              {totalPages > 1 && ` • Página ${currentPage} de ${totalPages}`}
             </div>
           )}
         </div>
