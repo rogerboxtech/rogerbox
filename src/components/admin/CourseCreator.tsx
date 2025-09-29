@@ -628,6 +628,46 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                     />
                   </div>
                 </div>
+
+                {/* Estudiantes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <Users className="inline w-4 h-4 mr-2" />
+                    Estudiantes Iniciales
+                  </label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="number"
+                      value={courseData.students_count || ''}
+                      onChange={(e) => setCourseData(prev => ({ ...prev, students_count: parseInt(e.target.value) || null }))}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <Star className="inline w-4 h-4 mr-2" />
+                    Calificación Inicial (0-5)
+                  </label>
+                  <div className="relative">
+                    <Star className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="number"
+                      value={courseData.rating || ''}
+                      onChange={(e) => setCourseData(prev => ({ ...prev, rating: parseFloat(e.target.value) || null }))}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="4.5"
+                      min="0"
+                      max="5"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Nivel del curso */}
@@ -982,6 +1022,14 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Calorías</p>
                     <p className="font-medium text-gray-900 dark:text-white">{courseData.calories_burned} cal</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Estudiantes</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{courseData.students_count || 0} personas</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Calificación</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{courseData.rating || 0} ⭐</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Lecciones</p>
