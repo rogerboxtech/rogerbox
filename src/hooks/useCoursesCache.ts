@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getMostViewedCourse } from '@/lib/analytics';
 
 interface Course {
   id: string;
@@ -12,6 +13,7 @@ interface Course {
   price: number;
   discount_percentage: number;
   category: string;
+  category_name?: string;
   duration_days: number;
   students_count: number;
   rating: number;
@@ -19,6 +21,8 @@ interface Course {
   level: string;
   is_published: boolean;
   created_at: string;
+  // include_iva: boolean; // Temporalmente deshabilitado
+  // iva_percentage: number; // Temporalmente deshabilitado
   instructor?: string;
   lessons?: number;
   isRecommended?: boolean;
@@ -35,7 +39,7 @@ interface CacheData {
   totalPages: number;
 }
 
-const CACHE_KEY = 'rogerbox_courses_cache';
+const CACHE_KEY = 'rogerbox_courses_cache_v3'; // Nueva versión para limpiar caché con categorías
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hora en milisegundos
 const COURSES_PER_PAGE = 9;
 
@@ -126,32 +130,48 @@ export function useCoursesCache(userProfile: any) {
       const totalCount = count || 0;
       const totalPages = Math.ceil(totalCount / COURSES_PER_PAGE);
 
+      // Obtener categorías de la base de datos
+      const { data: categoriesData } = await supabase
+        .from('course_categories')
+        .select('*')
+        .eq('is_active', true);
+
+      // Crear mapa de categorías
+      const categoryMap: { [key: string]: string } = {};
+      if (categoriesData) {
+        categoriesData.forEach(cat => {
+          categoryMap[cat.id] = cat.name;
+        });
+      }
+
+      // Obtener el curso más visitado
+      const mostViewedCourseId = await getMostViewedCourse();
+      console.log('📊 Dashboard: Curso más visitado:', mostViewedCourseId);
+
       // Transformar cursos
       const transformedCourses = (data || []).map(course => {
-        const categoryMap: { [key: string]: string } = {
-          'Transformación Intensa': 'lose_weight',
-          'HIIT Avanzado': 'hiit',
-          'Cardio Intenso': 'endurance',
-          'Fuerza Funcional': 'strength',
-          'Entrenamiento en Casa': 'tone',
-          'Rutina Matutina': 'lose_weight',
-          'Sesión Nocturna': 'tone',
-          'Entrenamiento Express': 'hiit',
-          'Complementos': 'all'
-        };
+        const categoryName = categoryMap[course.category] || 'Sin categoría';
         
-        const mappedCategory = categoryMap[course.category] || 'all';
+        // Determinar si es nuevo (últimas 2 semanas)
+        const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+        const isNew = new Date(course.created_at) > twoWeeksAgo;
+        
+        // Determinar si es popular (el más visitado de la lista actual)
+        const isPopular = mostViewedCourseId === course.id;
         
         const transformed = {
           ...course,
           instructor: 'RogerBox',
           lessons: 1,
-          isRecommended: userProfile?.goals?.includes(mappedCategory) || false,
+          isRecommended: userProfile?.goals?.includes(course.category) || false,
+          isNew: isNew,
+          isPopular: isPopular,
           thumbnail: course.preview_image,
           duration: `${course.duration_days} días`,
           students: course.students_count,
-          category: mappedCategory,
-          originalCategory: course.category // Mantener la categoría original
+          category: course.category, // Usar el ID de la categoría
+          category_name: categoryName, // Agregar el nombre de la categoría
+          originalCategory: course.category
         };
         
         console.log('📊 Curso transformado:', {
@@ -169,8 +189,20 @@ export function useCoursesCache(userProfile: any) {
         console.log('📊 Primer curso transformado:', transformedCourses[0]);
       }
 
+      // Ordenar cursos: POPULAR primero, luego por fecha de creación
+      const sortedCourses = transformedCourses.sort((a, b) => {
+        // Si uno es popular y el otro no, el popular va primero
+        if (a.isPopular && !b.isPopular) return -1;
+        if (!a.isPopular && b.isPopular) return 1;
+        
+        // Si ambos son populares o ninguno, ordenar por fecha de creación (más reciente primero)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      
+      console.log('📊 Dashboard: Cursos ordenados - Popular primero:', sortedCourses.map(c => ({ title: c.title, isPopular: c.isPopular, isNew: c.isNew })));
+
       return {
-        courses: transformedCourses,
+        courses: sortedCourses,
         totalCount,
         currentPage: page,
         totalPages

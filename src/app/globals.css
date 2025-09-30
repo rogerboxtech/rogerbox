@@ -30,6 +30,22 @@ body {
   font-weight: 700 !important;
 }
 
+/* Animación personalizada para la burbuja de bienvenida */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
 .font-semibold {
   font-weight: 600 !important;
 }
