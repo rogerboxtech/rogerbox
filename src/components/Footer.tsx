@@ -15,8 +15,8 @@ export default function Footer() {
               onClick={() => router.push('/')}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity mx-auto md:mx-0"
             >
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                ROGER<span className="text-[#85ea10]">BOX</span>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                <span className="font-black">ROGER<span className="text-[#85ea10]">BOX</span></span>
               </h3>
             </button>
             <p className="text-gray-600 dark:text-white/60 mb-4 mt-2">

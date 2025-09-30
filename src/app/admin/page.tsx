@@ -38,6 +38,8 @@ interface Course {
   id: string;
   title: string;
   short_description: string;
+  description?: string;
+  preview_image?: string;
   price: number;
   discount_percentage: number;
   category: string;
@@ -45,9 +47,21 @@ interface Course {
   students_count: number;
   rating: number;
   calories_burned: number;
+  intro_video_url?: string;
   level: string;
   is_published: boolean;
   created_at: string;
+  // include_iva: boolean; // Temporalmente deshabilitado
+  // iva_percentage: number; // Temporalmente deshabilitado
+  course_lessons?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    video_url: string;
+    preview_image: string;
+    lesson_order: number;
+    duration_minutes: number;
+  }>;
 }
 
 export default function AdminDashboard() {
@@ -57,6 +71,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCourseCreator, setShowCourseCreator] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -130,7 +145,19 @@ export default function AdminDashboard() {
       
       const { data, error } = await supabase
         .from('courses')
-        .select('*')
+        .select(`
+          *,
+          course_lessons (
+            id,
+            title,
+            description,
+            video_url,
+            preview_image,
+            lesson_number,
+            lesson_order,
+            duration_minutes
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -199,9 +226,22 @@ export default function AdminDashboard() {
   };
 
   const editCourse = (courseId: string) => {
-    // TODO: Implementar edición de curso
-    console.log('Editar curso:', courseId);
-    alert('Funcionalidad de edición en desarrollo');
+    const course = courses.find(c => c.id === courseId);
+    console.log('🔍 Admin - editCourse llamado para courseId:', courseId);
+    console.log('🔍 Admin - course encontrado:', course);
+    console.log('🔍 Admin - lessons en course:', course?.course_lessons);
+    
+    if (course) {
+      // Mapear course_lessons a lessons para el CourseCreator
+      const courseWithLessons = {
+        ...course,
+        lessons: course.course_lessons || []
+      };
+      console.log('🔍 Admin - courseWithLessons mapeado:', courseWithLessons);
+      
+      setEditingCourse(courseWithLessons);
+      setShowCourseCreator(true);
+    }
   };
 
   const deleteCourse = (courseId: string, courseTitle: string) => {
@@ -420,7 +460,10 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-600 dark:text-white/60">Añadir nuevo curso a la plataforma</p>
                   </div>
                   <button 
-                    onClick={() => setShowCourseCreator(true)}
+                    onClick={() => {
+                      setEditingCourse(null);
+                      setShowCourseCreator(true);
+                    }}
                     className="bg-[#85ea10] hover:bg-[#7dd30f] text-black p-3 rounded-lg transition-colors"
                   >
                     <Plus className="w-5 h-5" />
@@ -460,7 +503,10 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Gestión de Cursos</h2>
               <button 
-                onClick={() => setShowCourseCreator(true)}
+                onClick={() => {
+                  setEditingCourse(null);
+                  setShowCourseCreator(true);
+                }}
                 className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-semibold px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />
@@ -743,13 +789,18 @@ export default function AdminDashboard() {
       {/* Course Creator Modal */}
       {showCourseCreator && (
         <CourseCreator
-          onClose={() => setShowCourseCreator(false)}
+          onClose={() => {
+            setShowCourseCreator(false);
+            setEditingCourse(null);
+          }}
           onSuccess={() => {
             setShowCourseCreator(false);
+            setEditingCourse(null);
             // Recargar datos si es necesario
             loadAdminData();
             loadCourses();
           }}
+          courseToEdit={editingCourse}
         />
       )}
 

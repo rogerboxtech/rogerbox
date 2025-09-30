@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Play, Clock, Users, Star, Filter, Search, User, LogOut, ChevronDown, ShoppingCart, Heart, BookOpen, Target, Zap, Utensils, ChefHat, Award, TrendingUp, Trophy, Weight, X, Info, Settings, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { trackCourseView } from '@/lib/analytics';
 import Footer from '@/components/Footer';
 import QuickLoading from '@/components/QuickLoading';
-import { useCoursesCache } from '@/hooks/useCoursesCache';
+import { useFastCourses } from '@/hooks/useFastCourses';
 
 interface UserProfile {
   id: string;
@@ -60,23 +61,46 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  // Usar el hook de caché para cursos
+  // Usar el hook ULTRA RÁPIDO para cursos
   const {
     courses: realCourses,
     loading: loadingCourses,
-    currentPage,
-    totalPages,
-    totalCount,
     error: coursesError,
-    changePage,
     refresh: refreshCourses
-  } = useCoursesCache(userProfile);
+  } = useFastCourses();
+
+  // Funciones de precios sin IVA (temporalmente)
+  const calculateFinalPrice = (course: any) => {
+    let basePrice = course.price || 0;
+    
+    // Temporalmente sin IVA
+    // if (course.include_iva && course.iva_percentage) {
+    //   basePrice = Math.round(basePrice * (1 + course.iva_percentage / 100));
+    // }
+    
+    // Aplicar descuento si existe
+    if (course.discount_percentage && course.discount_percentage > 0) {
+      basePrice = Math.round(basePrice * (1 - course.discount_percentage / 100));
+    }
+    
+    return basePrice;
+  };
+
+  const calculateOriginalPrice = (course: any) => {
+    let basePrice = course.price || 0;
+    
+    // Temporalmente sin IVA
+    // if (course.include_iva && course.iva_percentage) {
+    //   basePrice = Math.round(basePrice * (1 + course.iva_percentage / 100));
+    // }
+    
+    return basePrice;
+  };
 
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
   console.log('📊 Dashboard: loadingCourses:', loadingCourses);
-  console.log('📊 Dashboard: currentPage:', currentPage);
-  console.log('📊 Dashboard: totalPages:', totalPages);
+  
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalData, setGoalData] = useState({
     targetWeight: '',
@@ -135,17 +159,41 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  // La lógica de carga de cursos ahora está en el hook useCoursesCache
+  const [categories, setCategories] = useState([
+    { id: 'all', name: 'Todos', icon: '🎯', color: '#85ea10' }
+  ]);
 
-  const categories = [
-    { id: 'all', name: 'Todos', icon: '🎯' },
-    { id: 'lose_weight', name: 'Bajar de Peso', icon: '🔥' },
-    { id: 'tone', name: 'Tonificar', icon: '💪' },
-    { id: 'gain_muscle', name: 'Ganar Músculo', icon: '🏋️' },
-    { id: 'endurance', name: 'Resistencia', icon: '🏃' },
-    { id: 'hiit', name: 'HIIT', icon: '⚡' },
-    { id: 'strength', name: 'Fuerza', icon: '💪' }
-  ];
+  // Cargar categorías desde la base de datos
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('course_categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+        
+        // Agregar "Todos" al inicio
+        setCategories([
+          { id: 'all', name: 'Todos', icon: '🎯', color: '#85ea10' },
+          ...(data || []).map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon,
+            color: cat.color
+          }))
+        ]);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // La lógica de carga de cursos ahora está en el hook useCoursesCache
 
   // Los cursos ahora vienen del hook useCoursesCache
   /*
@@ -155,9 +203,9 @@ export default function DashboardPage() {
   */
 
   const filteredCourses = realCourses.filter(course => {
-    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || course.category_id === selectedCategory;
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         course.short_description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -303,7 +351,7 @@ export default function DashboardPage() {
               onClick={() => router.push('/dashboard')}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-wider">
                 ROGER<span className="text-[#85ea10]">BOX</span>
               </h1>
             </button>
@@ -359,28 +407,28 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
+        {/* Welcome Message - Centrado arriba del progreso */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
             ¡Hola, {userProfile.name}! 👋
           </h1>
-          <p className="text-xl text-gray-600 dark:text-white/70">
-            Listo para tu próxima sesión de entrenamiento
+          <p className="text-lg text-gray-600 dark:text-white/70">
+            Continúa tu cambio físico y alcanza tus metas
           </p>
         </div>
 
-        {/* Progress Tracking Section */}
-        <div className="mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-            <div className="flex items-center space-x-3 mb-6">
-              <Target className="w-5 h-5 text-[#85ea10]" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tu Progreso</h2>
-            </div>
+        {/* Progress Tracking Section - Solo si el usuario ha comprado cursos */}
+        {userProfile && userProfile.purchased_courses?.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <Target className="w-5 h-5 text-[#85ea10]" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tu Progreso</h2>
+              </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Racha de Clases */}
-              <div className="bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/10 rounded-xl p-4 border border-[#85ea10]/30 shadow-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/10 rounded-xl p-4 shadow-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <div className="p-2 bg-[#85ea10]/30 rounded-lg">
                     <Trophy className="w-4 h-4 text-[#85ea10]" />
@@ -399,8 +447,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Meta de Peso */}
-              <div className="bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-xl p-4 border border-blue-400/30 shadow-lg">
+              <div className="bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-xl p-4 shadow-lg">
                 <div className="flex items-center space-x-2 mb-1">
                   <div className="p-2 bg-blue-500/30 rounded-lg">
                     <Weight className="w-4 h-4 text-blue-600" />
@@ -458,8 +505,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Recomendación de Curso */}
-              <div className="bg-gradient-to-br from-purple-500/20 to-purple-400/10 rounded-xl p-4 border border-purple-400/30 shadow-lg">
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-400/10 rounded-xl p-4 shadow-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <div className="p-2 bg-purple-500/30 rounded-lg">
                     <Play className="w-4 h-4 text-purple-600" />
@@ -478,9 +524,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Agregar Meta - Solo mostrar si no hay meta establecida */}
             {!userProfile.target_weight && (
-              <div className="mt-6 bg-gradient-to-r from-[#85ea10]/10 to-[#85ea10]/5 rounded-xl p-4 border border-[#85ea10]/20">
+              <div className="mt-6 bg-gradient-to-r from-[#85ea10]/10 to-[#85ea10]/5 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-1">¡Establece tu Meta!</h3>
@@ -499,46 +544,55 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        )}
 
-        {/* Search and Filter Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar cursos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/20 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#85ea10] focus:border-transparent"
-              />
+        {/* Welcome Section for New Users - Solo si no ha comprado cursos */}
+        {userProfile && (!userProfile.purchased_courses || userProfile.purchased_courses.length === 0) && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-[#85ea10]/10 to-[#7dd30f]/10 rounded-2xl p-6 border border-[#85ea10]/20">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#85ea10]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🚀</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  ¡Bienvenido a tu transformación!
+                </h3>
+                <p className="text-gray-600 dark:text-white/70 mb-4">
+                  Descubre nuestros cursos y comienza tu viaje hacia una vida más saludable
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 text-sm text-gray-500 dark:text-white/60">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
+                    Entrenamientos personalizados
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
+                    Seguimiento de progreso
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
+                    Resultados garantizados
+                  </span>
+                </div>
+              </div>
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/20 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#85ea10] focus:border-transparent"
-            >
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
           </div>
+        )}
 
-          {/* Category Filters */}
-          <div className="flex flex-wrap gap-3">
+        {/* Category Filters - Más compactos */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
             {categories.map(category => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md border transition-all duration-200 font-medium text-sm ${
                   selectedCategory === category.id
-                    ? 'bg-[#85ea10] text-black border-[#85ea10] shadow-lg'
+                    ? 'bg-[#85ea10] text-black border-[#85ea10] shadow-md'
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white border-gray-200 dark:border-white/20 hover:border-[#85ea10]/50'
                 }`}
               >
-                <span className="text-lg">{category.icon}</span>
+                <span className="text-sm">{category.icon}</span>
                 <span>{category.name}</span>
               </button>
             ))}
@@ -550,7 +604,7 @@ export default function DashboardPage() {
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.map(course => (
-                <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow flex flex-col">
                   <div className="relative">
                     <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                       <img 
@@ -571,22 +625,22 @@ export default function DashboardPage() {
                     <div className="absolute top-3 left-3 bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
                       Recomendado
                     </div>
-                    <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-white dark:bg-gray-800/90 px-2 py-1 rounded-full">
                       <Star className="w-4 h-4 text-yellow-500 fill-current" />
                       <span className="text-sm font-medium">{course.rating}</span>
                     </div>
                   </div>
-                  <div className="p-6">
+                  <div className="p-6 flex flex-col flex-grow">
                     {/* Información de calorías y clases */}
                     <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                    <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.description}</p>
+                    <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.short_description}</p>
                     
                     {/* Cuadro verde unificado */}
-                    <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4">
+                    <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
                       {/* Categoría del curso */}
                       <div className="flex items-center justify-center mb-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
-                          Bajar de peso
+                          {course.category_name || 'Sin categoría'}
                         </span>
                       </div>
                       
@@ -622,20 +676,34 @@ export default function DashboardPage() {
                       {/* Precio */}
                       <div className="text-center">
                         <div className="flex items-center justify-center space-x-2 mb-1">
-                          <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
-                            ${course.price?.toLocaleString('es-CO') || '0'}
-                          </span>
-                          {course.discount_percentage && course.discount_percentage > 0 && (
-                            <span className="text-lg text-gray-400 dark:text-white/50 line-through">
-                              ${Math.round(course.price / (1 - course.discount_percentage / 100)).toLocaleString('es-CO')}
+                          {course.discount_percentage && course.discount_percentage > 0 ? (
+                            <>
+                              <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                                ${calculateFinalPrice(course).toLocaleString('es-CO')}
+                              </span>
+                              <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                                ${calculateOriginalPrice(course).toLocaleString('es-CO')}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                              ${calculateFinalPrice(course).toLocaleString('es-CO')}
                             </span>
                           )}
                         </div>
-                        {course.discount_percentage && course.discount_percentage > 0 && (
-                          <span className="text-sm text-[#85ea10] font-semibold">
-                            {course.discount_percentage}% de descuento
-                          </span>
-                        )}
+                        <div className="flex flex-col items-center space-y-1">
+                          {course.discount_percentage && course.discount_percentage > 0 && (
+                            <span className="text-sm text-[#85ea10] font-semibold">
+                              {course.discount_percentage}% de descuento
+                            </span>
+                          )}
+                          {/* IVA temporalmente deshabilitado */}
+                          {/* {course.include_iva && course.iva_percentage && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              IVA {course.iva_percentage}% incluido
+                            </span>
+                          )} */}
+                        </div>
                       </div>
                       
                       {/* Botón */}
@@ -656,9 +724,11 @@ export default function DashboardPage() {
 
         {/* All Courses */}
         <div>
-          <h2 className="text-2xl font-bold dashboard-title text-gray-900 dark:text-white mb-6">
-            Todos los Cursos
-          </h2>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold dashboard-title text-gray-900 dark:text-white">
+              Todos los Cursos
+            </h2>
+          </div>
           {loadingCourses ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#85ea10] mx-auto mb-4"></div>
@@ -678,7 +748,7 @@ export default function DashboardPage() {
             </div>
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-24 h-24 bg-gray-100 dark:bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-12 h-12 text-gray-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -691,40 +761,53 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map(course => (
-              <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+              <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-150 ease-out flex flex-col">
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={course.thumbnail || '/images/course-placeholder.jpg'} 
+                      src={course.thumbnail || course.preview_image || '/images/course-placeholder.jpg'} 
                       alt={course.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
+                        target.src = '/images/course-placeholder.jpg';
                       }}
                     />
                     <div className="hidden absolute inset-0 bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">
                       <Play className="w-12 h-12 text-[#85ea10]" />
                     </div>
                   </div>
-                  <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded-full">
+                  {/* Etiquetas POPULAR/NUEVO */}
+                  <div className="absolute top-3 left-3 flex flex-col space-y-2">
+                    {course.isPopular && (
+                      <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        POPULAR
+                      </div>
+                    )}
+                    {course.isNew && (
+                      <div className="bg-[#85ea10] text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        NUEVO
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Rating */}
+                  <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-white dark:bg-gray-800/90 px-2 py-1 rounded-full">
                     <Star className="w-4 h-4 text-yellow-500 fill-current" />
                     <span className="text-sm font-medium">{course.rating}</span>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="p-6 flex flex-col flex-grow">
                   {/* Información de calorías y clases */}
                   <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                  <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.description}</p>
+                  <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.short_description}</p>
                   
                   {/* Cuadro verde unificado */}
-                  <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4">
+                  <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
                     {/* Categoría del curso */}
                     <div className="flex items-center justify-center mb-2">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
-                        Bajar de peso
+                        {course.category_name || 'Sin categoría'}
                       </span>
                     </div>
                     
@@ -760,26 +843,44 @@ export default function DashboardPage() {
                     {/* Precio */}
                     <div className="text-center">
                       <div className="flex items-center justify-center space-x-2 mb-1">
-                        <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
-                          ${course.price?.toLocaleString('es-CO') || '0'}
-                        </span>
-                        {course.discount_percentage && course.discount_percentage > 0 && (
-                          <span className="text-lg text-gray-400 dark:text-white/50 line-through">
-                            ${Math.round(course.price / (1 - course.discount_percentage / 100)).toLocaleString('es-CO')}
+                        {course.discount_percentage && course.discount_percentage > 0 ? (
+                          <>
+                            <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                              ${calculateFinalPrice(course).toLocaleString('es-CO')}
+                            </span>
+                            <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                              ${calculateOriginalPrice(course).toLocaleString('es-CO')}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                            ${calculateFinalPrice(course).toLocaleString('es-CO')}
                           </span>
                         )}
                       </div>
-                      {course.discount_percentage && course.discount_percentage > 0 && (
-                        <span className="text-sm text-[#85ea10] font-semibold">
-                          {course.discount_percentage}% de descuento
-                        </span>
-                      )}
+                      <div className="flex flex-col items-center space-y-1">
+                        {course.discount_percentage && course.discount_percentage > 0 && (
+                          <span className="text-sm text-[#85ea10] font-semibold">
+                            {course.discount_percentage}% de descuento
+                          </span>
+                        )}
+                        {/* IVA temporalmente deshabilitado */}
+                        {/* {course.include_iva && course.iva_percentage && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            IVA {course.iva_percentage}% incluido
+                          </span>
+                        )} */}
+                      </div>
                     </div>
                     
                     {/* Botón */}
                     <button
-                      onClick={() => router.push(`/course/${course.id}`)}
-                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      onClick={async () => {
+                        // Trackear la visita al curso
+                        await trackCourseView(course.id);
+                        router.push(`/course/${course.id}`);
+                      }}
+                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2 shadow-lg"
                     >
                       <ShoppingCart className="w-4 h-4" />
                       <span>¡Comenzar Ahora!</span>
@@ -791,50 +892,10 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Paginación */}
-          {!loadingCourses && filteredCourses.length > 0 && totalPages > 1 && (
-            <div className="flex items-center justify-center space-x-4 mt-8">
-              <button
-                onClick={() => changePage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Anterior</span>
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => changePage(page)}
-                    className={`px-3 py-2 rounded-lg transition-colors ${
-                      page === currentPage
-                        ? 'bg-[#85ea10] text-black font-bold'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              
-              <button
-                onClick={() => changePage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <span>Siguiente</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Información de paginación */}
+          {/* Información de cursos */}
           {!loadingCourses && filteredCourses.length > 0 && (
             <div className="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">
-              Mostrando {filteredCourses.length} de {totalCount} cursos
-              {totalPages > 1 && ` • Página ${currentPage} de ${totalPages}`}
+              Mostrando {filteredCourses.length} cursos
             </div>
           )}
         </div>
@@ -894,7 +955,7 @@ export default function DashboardPage() {
                   type="number"
                   value={goalData.targetWeight}
                   onChange={(e) => setGoalData(prev => ({ ...prev, targetWeight: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Ej: 65"
                   min="30"
                   max="300"
@@ -909,7 +970,7 @@ export default function DashboardPage() {
                   type="date"
                   value={goalData.deadline}
                   onChange={(e) => setGoalData(prev => ({ ...prev, deadline: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
@@ -926,7 +987,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => setShowGoalModal(false)}
                 disabled={goalLoading}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-white dark:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
@@ -975,7 +1036,7 @@ export default function DashboardPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Fórmula:</h3>
-                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                <div className="bg-gray-100 dark:bg-white dark:bg-gray-800 p-3 rounded-lg">
                   <code className="text-sm text-gray-800 dark:text-gray-200">
                     IMC = Peso (kg) ÷ Altura (m)²
                   </code>
@@ -1041,3 +1102,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

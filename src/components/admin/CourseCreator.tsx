@@ -21,8 +21,10 @@ import {
   Target,
   Settings
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import CategoryManager from './CategoryManager';
+import RogerAlert from '../RogerAlert';
+// import { uploadImage, deleteImage, isSupabaseStorageUrl, getImagePathFromUrl, getBucketFromUrl } from '@/lib/storage'; // Temporalmente deshabilitado
 
 interface CourseData {
   title: string;
@@ -33,12 +35,12 @@ interface CourseData {
   discount_percentage: number | null;
   category: string;
   duration_days: number | null;
-  students_count: number | null;
-  rating: number | null;
   calories_burned: number | null;
   intro_video_url: string;
   level: string;
   is_published: boolean;
+  // include_iva: boolean; // Temporalmente deshabilitado
+  // iva_percentage: number | null; // Temporalmente deshabilitado
 }
 
 interface Category {
@@ -66,15 +68,20 @@ interface LessonData {
 interface CourseCreatorProps {
   onClose: () => void;
   onSuccess: () => void;
+  courseToEdit?: any; // Curso existente para editar
 }
 
-export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps) {
+export default function CourseCreator({ onClose, onSuccess, courseToEdit }: CourseCreatorProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [dragActive, setDragActive] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [formattedPrice, setFormattedPrice] = useState<string>('');
+  const [formattedIvaPrice, setFormattedIvaPrice] = useState<string>('');
   const [courseData, setCourseData] = useState<CourseData>({
     title: '',
     description: '',
@@ -84,12 +91,12 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
     discount_percentage: null,
     category: '',
     duration_days: null,
-    students_count: null,
-    rating: null,
     calories_burned: null,
     intro_video_url: '',
     level: 'beginner',
-    is_published: true
+    is_published: false,
+    // include_iva: false, // Temporalmente deshabilitado
+    // iva_percentage: 19 // Temporalmente deshabilitado
   });
   const [lessons, setLessons] = useState<LessonData[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +105,62 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Cargar datos del curso a editar
+  useEffect(() => {
+    if (courseToEdit) {
+      console.log('🔍 CourseCreator - courseToEdit recibido:', courseToEdit);
+      console.log('🔍 CourseCreator - lessons en courseToEdit:', courseToEdit.lessons);
+      console.log('🔍 CourseCreator - price:', courseToEdit.price, 'type:', typeof courseToEdit.price);
+      console.log('🔍 CourseCreator - duration_days:', courseToEdit.duration_days, 'type:', typeof courseToEdit.duration_days);
+      console.log('🔍 CourseCreator - calories_burned:', courseToEdit.calories_burned, 'type:', typeof courseToEdit.calories_burned);
+      console.log('🔍 CourseCreator - category:', courseToEdit.category, 'type:', typeof courseToEdit.category);
+      
+      if (courseToEdit.lessons && courseToEdit.lessons.length > 0) {
+        console.log('🔍 CourseCreator - Primera lección:', courseToEdit.lessons[0]);
+        console.log('🔍 CourseCreator - duration_minutes primera lección:', courseToEdit.lessons[0]?.duration_minutes);
+      }
+      
+      // Mantener el ID de la categoría para la comparación
+      let categoryValue = courseToEdit.category || '';
+      console.log('🔍 CourseCreator - categoryValue original:', categoryValue);
+
+      const newCourseData = {
+        title: courseToEdit.title || '',
+        description: courseToEdit.description || '',
+        short_description: courseToEdit.short_description || '',
+        preview_image: courseToEdit.preview_image || null,
+        price: courseToEdit.price !== undefined ? courseToEdit.price : null,
+        discount_percentage: courseToEdit.discount_percentage !== undefined ? courseToEdit.discount_percentage : null,
+        category: categoryValue,
+        duration_days: courseToEdit.duration_days !== undefined ? courseToEdit.duration_days : null,
+        calories_burned: courseToEdit.calories_burned !== undefined ? courseToEdit.calories_burned : null,
+        intro_video_url: courseToEdit.intro_video_url || '',
+        level: courseToEdit.level || 'beginner',
+        is_published: courseToEdit.is_published !== undefined ? courseToEdit.is_published : false,
+        // include_iva: courseToEdit.include_iva !== undefined ? courseToEdit.include_iva : false, // Temporalmente deshabilitado
+        // iva_percentage: courseToEdit.iva_percentage !== undefined ? courseToEdit.iva_percentage : 19 // Temporalmente deshabilitado
+      };
+      
+      console.log('🔍 CourseCreator - newCourseData establecido:', newCourseData);
+      console.log('🔍 CourseCreator - category en newCourseData:', newCourseData.category);
+      console.log('🔍 CourseCreator - intro_video_url en newCourseData:', newCourseData.intro_video_url);
+      console.log('🔍 CourseCreator - courseToEdit.intro_video_url:', courseToEdit.intro_video_url);
+      
+      setCourseData(newCourseData);
+      
+      // Formatear precio para mostrar
+      setFormattedPrice(formatPrice(newCourseData.price));
+      
+      // Cargar lecciones del curso
+      if (courseToEdit.lessons) {
+        console.log('✅ CourseCreator - Cargando lecciones:', courseToEdit.lessons);
+        setLessons(courseToEdit.lessons);
+      } else {
+        console.log('❌ CourseCreator - No hay lecciones en courseToEdit');
+      }
+    }
+  }, [courseToEdit, categories]);
 
   const fetchCategories = async () => {
     try {
@@ -124,7 +187,9 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
 
   const handleImageUpload = async (file: File, type: 'course' | 'lesson', lessonIndex?: number) => {
     try {
-      // Por ahora, convertimos la imagen a base64 para almacenamiento temporal
+      console.log(`📤 Procesando imagen ${type}:`, file.name);
+      
+      // TEMPORAL: Usar Base64 hasta configurar Storage correctamente
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64String = e.target?.result as string;
@@ -136,12 +201,22 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
           updatedLessons[lessonIndex].preview_image = base64String;
           setLessons(updatedLessons);
         }
+        
+        console.log('✅ Imagen procesada exitosamente (Base64)');
       };
       reader.readAsDataURL(file);
+      
     } catch (error) {
-      console.error('Error processing image:', error);
-      alert('Error al procesar la imagen. Inténtalo de nuevo.');
+      console.error('❌ Error procesando imagen:', error);
+      setValidationErrors([`Error al procesar la imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`]);
     }
+  };
+
+  // Función para eliminar imagen (simplificada para Base64)
+  const handleImageDelete = async (imageUrl: string, type: 'course' | 'lesson') => {
+    // Para Base64, no necesitamos eliminar nada del storage
+    // Solo se elimina del estado local
+    console.log('🗑️ Eliminando imagen del estado local (Base64)');
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -196,176 +271,322 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
     const updatedLessons = [...lessons];
     updatedLessons[index] = { ...updatedLessons[index], [field]: value };
     setLessons(updatedLessons);
+    // Limpiar errores cuando el usuario modifica algo
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
   };
+
+  // Función para limpiar errores cuando el usuario modifica el curso
+  const clearValidationErrors = () => {
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
+  };
+
+  // Función para formatear precio con puntos
+  const formatPrice = (price: number | null) => {
+    if (!price) return '';
+    return price.toLocaleString('es-CO');
+  };
+
+  // Función para parsear precio desde string con puntos
+  const parsePrice = (priceString: string) => {
+    // Remover puntos y convertir a número
+    const cleanPrice = priceString.replace(/\./g, '');
+    return parseFloat(cleanPrice) || 0;
+  };
+
+  // Funciones de IVA temporalmente deshabilitadas
+  // const calculatePriceWithIva = (basePrice: number, ivaPercentage: number) => {
+  //   return Math.round(basePrice * (1 + ivaPercentage / 100));
+  // };
+
+  // const formatIvaPrice = (basePrice: number | null, ivaPercentage: number | null) => {
+  //   if (!basePrice || !ivaPercentage) return '';
+  //   const priceWithIva = calculatePriceWithIva(basePrice, ivaPercentage);
+  //   return priceWithIva.toLocaleString('es-CO');
+  // };
 
   // Función para validar si el formulario está completo
   const isFormValid = () => {
-    return (
-      courseData.title.trim() &&
-      courseData.title.length <= 100 &&
-      courseData.description.trim() &&
-      courseData.description.length <= 1000 &&
-      courseData.short_description.trim() &&
-      courseData.short_description.length <= 200 &&
-      courseData.price && courseData.price > 0 &&
-      courseData.category &&
-      courseData.duration_days && courseData.duration_days > 0 &&
-      courseData.level &&
-      lessons.length > 0 &&
-      lessons.every(lesson => 
-        lesson.title.trim() &&
-        lesson.title.length <= 100 &&
-        lesson.description.trim() &&
-        lesson.description.length <= 300 &&
-        lesson.video_url.trim() &&
-        lesson.duration_minutes && lesson.duration_minutes > 0
-      )
+    const titleValid = courseData.title.trim() && courseData.title.length <= 100;
+    const descriptionValid = courseData.description.trim() && courseData.description.length <= 1000;
+    const shortDescriptionValid = courseData.short_description.trim() && courseData.short_description.length <= 200;
+    const priceValid = courseData.price && courseData.price > 0;
+    const categoryValid = courseData.category;
+    const durationValid = courseData.duration_days && courseData.duration_days > 0;
+    const levelValid = courseData.level;
+    const lessonsValid = lessons.length > 0;
+    const lessonsContentValid = lessons.every(lesson => 
+      lesson.title.trim() &&
+      lesson.title.length <= 100 &&
+      lesson.description.trim() &&
+      lesson.description.length <= 300 &&
+      lesson.video_url.trim() &&
+      lesson.duration_minutes && lesson.duration_minutes > 0
     );
+    
+    const isValid = titleValid && descriptionValid && shortDescriptionValid && 
+                   priceValid && categoryValid && durationValid && levelValid && 
+                   lessonsValid && lessonsContentValid;
+    
+    console.log('🔍 isFormValid - Validando formulario:');
+    console.log('  - titleValid:', titleValid, '(', courseData.title.trim(), ')');
+    console.log('  - descriptionValid:', descriptionValid, '(', courseData.description.trim(), ')');
+    console.log('  - shortDescriptionValid:', shortDescriptionValid, '(', courseData.short_description.trim(), ')');
+    console.log('  - priceValid:', priceValid, '(', courseData.price, ')');
+    console.log('  - categoryValid:', categoryValid, '(', courseData.category, ')');
+    console.log('  - durationValid:', durationValid, '(', courseData.duration_days, ')');
+    console.log('  - levelValid:', levelValid, '(', courseData.level, ')');
+    console.log('  - lessonsValid:', lessonsValid, '(', lessons.length, ')');
+    console.log('  - lessonsContentValid:', lessonsContentValid);
+    console.log('  - lessons:', lessons);
+    console.log('  - isValid:', isValid);
+    
+    return isValid;
   };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      setValidationErrors([]); // Limpiar errores anteriores
+
+      const errors: string[] = [];
 
       // Validaciones obligatorias
       if (!courseData.title.trim()) {
-        alert('El nombre del curso es obligatorio');
-        return;
+        errors.push('El nombre del curso es obligatorio');
       }
       
       if (courseData.title.length > 100) {
-        alert('El nombre del curso no puede exceder 100 caracteres');
-        return;
+        errors.push('El nombre del curso no puede exceder 100 caracteres');
       }
       
       if (!courseData.description.trim()) {
-        alert('La descripción del curso es obligatoria');
-        return;
+        errors.push('La descripción del curso es obligatoria');
       }
       
       if (courseData.description.length > 1000) {
-        alert('La descripción del curso no puede exceder 1000 caracteres');
-        return;
+        errors.push('La descripción del curso no puede exceder 1000 caracteres');
       }
       
       if (!courseData.short_description.trim()) {
-        alert('La descripción corta es obligatoria');
-        return;
+        errors.push('La descripción corta es obligatoria');
       }
       
       if (courseData.short_description.length > 200) {
-        alert('La descripción corta no puede exceder 200 caracteres');
-        return;
+        errors.push('La descripción corta no puede exceder 200 caracteres');
       }
       
       if (!courseData.price || courseData.price <= 0) {
-        alert('El precio debe ser mayor a 0');
-        return;
+        errors.push('El precio debe ser mayor a 0');
       }
       
       if (!courseData.category) {
-        alert('Debes seleccionar una categoría');
-        return;
+        errors.push('Debes seleccionar una categoría');
       }
       
       if (!courseData.duration_days || courseData.duration_days <= 0) {
-        alert('La duración debe ser mayor a 0 días');
-        return;
+        errors.push('La duración debe ser mayor a 0 días');
       }
       
       if (!courseData.level) {
-        alert('Debes seleccionar un nivel');
-        return;
+        errors.push('Debes seleccionar un nivel');
       }
       
       if (lessons.length === 0) {
-        alert('Debes agregar al menos una lección');
-        return;
+        errors.push('Debes agregar al menos una lección');
       }
 
       // Validar que todas las lecciones tengan datos obligatorios
       for (let i = 0; i < lessons.length; i++) {
         const lesson = lessons[i];
         if (!lesson.title.trim()) {
-          alert(`La lección ${i + 1} debe tener un título`);
-          return;
+          errors.push(`La lección ${i + 1} debe tener un título`);
         }
         if (lesson.title.length > 100) {
-          alert(`El título de la lección ${i + 1} no puede exceder 100 caracteres`);
-          return;
+          errors.push(`El título de la lección ${i + 1} no puede exceder 100 caracteres`);
         }
         if (!lesson.description.trim()) {
-          alert(`La lección ${i + 1} debe tener una descripción`);
-          return;
+          errors.push(`La lección ${i + 1} debe tener una descripción`);
         }
         if (lesson.description.length > 300) {
-          alert(`La descripción de la lección ${i + 1} no puede exceder 300 caracteres`);
-          return;
+          errors.push(`La descripción de la lección ${i + 1} no puede exceder 300 caracteres`);
         }
         if (!lesson.video_url.trim()) {
-          alert(`La lección ${i + 1} debe tener una URL de video`);
-          return;
+          errors.push(`La lección ${i + 1} debe tener una URL de video`);
         }
         if (!lesson.duration_minutes || lesson.duration_minutes <= 0) {
-          alert(`La lección ${i + 1} debe tener una duración válida`);
-          return;
+          errors.push(`La lección ${i + 1} debe tener una duración válida`);
         }
       }
 
-      // Preparar datos del curso convirtiendo null a 0
+      // Si hay errores, mostrarlos y salir
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        setLoading(false);
+        // Hacer scroll hacia las alertas
+        setTimeout(() => {
+          const alertElement = document.querySelector('[data-validation-alerts]');
+          if (alertElement) {
+            alertElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+        return;
+      }
+
+      // Preparar datos del curso - SIN IVA temporalmente hasta resolver caché
       const courseDataToSubmit = {
-        ...courseData,
+        title: courseData.title,
+        short_description: courseData.short_description || '',
+        description: courseData.description || '',
+        preview_image: courseData.preview_image || null,
         price: courseData.price || 0,
         discount_percentage: courseData.discount_percentage || 0,
+        category: courseData.category || null,
         duration_days: courseData.duration_days || 30,
-        students_count: courseData.students_count || 0,
-        rating: courseData.rating || 0,
-        calories_burned: courseData.calories_burned || 0
+        calories_burned: courseData.calories_burned || 0,
+        intro_video_url: courseData.intro_video_url || '',
+        level: courseData.level || 'beginner',
+        is_published: courseData.is_published || false
+        // Temporalmente sin IVA hasta resolver problema de caché de Supabase
       };
 
       console.log('Creando curso con datos:', courseDataToSubmit);
       console.log('Lecciones:', lessons);
+      console.log('🔍 intro_video_url en courseDataToSubmit:', courseDataToSubmit.intro_video_url);
 
-      // Crear el curso
-      const { data: course, error: courseError } = await supabase
-        .from('courses')
-        .insert([courseDataToSubmit])
-        .select()
-        .single();
+      // Crear o actualizar el curso
+      let course;
+      let courseError;
+      
+      if (courseToEdit) {
+        // Esperar más tiempo para que el esquema se actualice
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Actualizar curso existente
+        const { data, error } = await supabaseAdmin
+          .from('courses')
+          .update(courseDataToSubmit)
+          .eq('id', courseToEdit.id)
+          .select()
+          .single();
+        course = data;
+        courseError = error;
+      } else {
+        // Esperar más tiempo para que el esquema se actualice
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Crear nuevo curso
+        const { data, error } = await supabaseAdmin
+          .from('courses')
+          .insert([courseDataToSubmit])
+          .select()
+          .single();
+        course = data;
+        courseError = error;
+      }
 
       if (courseError) {
-        console.error('Error creando curso:', courseError);
-        throw new Error(`Error al crear el curso: ${courseError.message}`);
+        console.error('Error completo de Supabase:', courseError);
+        console.error('Mensaje de error:', courseError.message);
+        console.error('Código de error:', courseError.code);
+        console.error('Detalles de error:', courseError.details);
+        
+        // Manejo específico para errores de esquema (temporalmente deshabilitado)
+        // if (courseError.message.includes('schema cache') || courseError.message.includes('include_iva')) {
+        //   throw new Error('Error de esquema de base de datos. Las columnas de IVA no están disponibles. Por favor, contacta al administrador.');
+        // }
+        
+        throw new Error(`Error al ${courseToEdit ? 'actualizar' : 'crear'} el curso: ${courseError.message}`);
       }
 
-      console.log('Curso creado exitosamente:', course);
+      console.log(`Curso ${courseToEdit ? 'actualizado' : 'creado'} exitosamente:`, course);
 
-      // Crear las lecciones
+      // Manejar lecciones
       if (lessons.length > 0) {
-        const lessonsWithCourseId = lessons.map(lesson => ({
-          ...lesson,
-          course_id: course.id
-        }));
+        if (courseToEdit) {
+          // Actualizar lecciones existentes
+          console.log('Actualizando lecciones existentes...');
+          
+          for (let i = 0; i < lessons.length; i++) {
+            const lesson = lessons[i];
+            const lessonData = {
+              title: lesson.title,
+              description: lesson.description,
+              video_url: lesson.video_url,
+              preview_image: lesson.preview_image,
+              lesson_number: i + 1,
+              lesson_order: i + 1,
+              duration_minutes: lesson.duration_minutes,
+              is_preview: lesson.is_preview
+            };
 
-        console.log('Creando lecciones:', lessonsWithCourseId);
+            if (lesson.id) {
+              // Actualizar lección existente
+              const { error: updateError } = await supabaseAdmin
+                .from('course_lessons')
+                .update(lessonData)
+                .eq('id', lesson.id);
 
-        const { error: lessonsError } = await supabase
-          .from('course_lessons')
-          .insert(lessonsWithCourseId);
+              if (updateError) {
+                console.error(`Error actualizando lección ${i + 1}:`, updateError);
+                throw new Error(`Error al actualizar la lección ${i + 1}: ${updateError.message}`);
+              }
+            } else {
+              // Crear nueva lección si no tiene ID
+              const { error: insertError } = await supabase
+                .from('course_lessons')
+                .insert([{
+                  ...lessonData,
+                  course_id: course.id
+                }]);
 
-        if (lessonsError) {
-          console.error('Error creando lecciones:', lessonsError);
-          throw new Error(`Error al crear las lecciones: ${lessonsError.message}`);
+              if (insertError) {
+                console.error(`Error creando lección ${i + 1}:`, insertError);
+                throw new Error(`Error al crear la lección ${i + 1}: ${insertError.message}`);
+              }
+            }
+          }
+          
+          console.log('Lecciones actualizadas exitosamente');
+        } else {
+          // Crear nuevas lecciones para curso nuevo
+          const lessonsWithCourseId = lessons.map((lesson, index) => ({
+            ...lesson,
+            course_id: course.id,
+            lesson_number: index + 1,
+            lesson_order: index + 1
+          }));
+
+          console.log('Creando lecciones:', lessonsWithCourseId);
+
+          const { error: lessonsError } = await supabase
+            .from('course_lessons')
+            .insert(lessonsWithCourseId);
+
+          if (lessonsError) {
+            console.error('Error creando lecciones:', lessonsError);
+            throw new Error(`Error al crear las lecciones: ${lessonsError.message}`);
+          }
+
+          console.log('Lecciones creadas exitosamente');
         }
-
-        console.log('Lecciones creadas exitosamente');
       }
 
-      alert('¡Curso creado exitosamente!');
+      setShowSuccessModal(true);
       onSuccess();
     } catch (error: any) {
       console.error('Error creating course:', error);
-      alert(`Error al crear el curso: ${error.message || 'Error desconocido'}`);
+      setValidationErrors([`Error al ${courseToEdit ? 'actualizar' : 'crear'} el curso: ${error.message || 'Error desconocido'}`]);
+      // Hacer scroll hacia las alertas
+      setTimeout(() => {
+        const alertElement = document.querySelector('[data-validation-alerts]');
+        if (alertElement) {
+          alertElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     } finally {
       setLoading(false);
     }
@@ -384,7 +605,7 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Crear Nuevo Curso
+            {courseToEdit ? 'Editar Curso' : 'Crear Nuevo Curso'}
           </h2>
           <button
             onClick={onClose}
@@ -435,6 +656,30 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {/* Alertas de validación */}
+          {validationErrors.length > 0 && (
+            <div data-validation-alerts className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Por favor corrige los siguientes errores:
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                    <ul className="list-disc list-inside space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {currentStep === 1 && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -449,7 +694,10 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                 <input
                   type="text"
                   value={courseData.title}
-                  onChange={(e) => setCourseData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => {
+                    setCourseData(prev => ({ ...prev, title: e.target.value }));
+                    clearValidationErrors();
+                  }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                     courseData.title.length > 100 
                       ? 'border-red-500 dark:border-red-500' 
@@ -568,13 +816,20 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      type="number"
-                      value={courseData.price || ''}
-                      onChange={(e) => setCourseData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                      type="text"
+                      value={formattedPrice}
+                      onChange={(e) => {
+                        const parsedPrice = parsePrice(e.target.value);
+                        setCourseData(prev => ({ ...prev, price: parsedPrice }));
+                        setFormattedPrice(e.target.value);
+                        clearValidationErrors();
+                      }}
+                      onBlur={(e) => {
+                        const parsedPrice = parsePrice(e.target.value);
+                        setFormattedPrice(formatPrice(parsedPrice));
+                      }}
                       className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="50000"
-                      min="0"
-                      step="1000"
+                      placeholder="50.000"
                     />
                   </div>
                 </div>
@@ -585,13 +840,32 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                   <input
                     type="number"
                     value={courseData.discount_percentage || ''}
-                    onChange={(e) => setCourseData(prev => ({ ...prev, discount_percentage: parseInt(e.target.value) || null }))}
+                    onChange={(e) => {
+                      const discountValue = parseInt(e.target.value) || 0;
+                      setCourseData(prev => ({ ...prev, discount_percentage: discountValue }));
+                      clearValidationErrors();
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     placeholder="0"
                     min="0"
                     max="100"
                   />
                 </div>
+              </div>
+
+              {/* IVA - Temporalmente deshabilitado */}
+              <div className="space-y-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-yellow-800 font-bold">!</span>
+                  </div>
+                  <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Funcionalidad de IVA temporalmente deshabilitada
+                  </h4>
+                </div>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  La configuración de IVA estará disponible próximamente. Por ahora, los precios se manejan sin IVA.
+                </p>
               </div>
 
               {/* Duración y calorías */}
@@ -629,45 +903,6 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                   </div>
                 </div>
 
-                {/* Estudiantes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Users className="inline w-4 h-4 mr-2" />
-                    Estudiantes Iniciales
-                  </label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="number"
-                      value={courseData.students_count || ''}
-                      onChange={(e) => setCourseData(prev => ({ ...prev, students_count: parseInt(e.target.value) || null }))}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                {/* Rating */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Star className="inline w-4 h-4 mr-2" />
-                    Calificación Inicial (0-5)
-                  </label>
-                  <div className="relative">
-                    <Star className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="number"
-                      value={courseData.rating || ''}
-                      onChange={(e) => setCourseData(prev => ({ ...prev, rating: parseFloat(e.target.value) || null }))}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="4.5"
-                      min="0"
-                      max="5"
-                      step="0.1"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Nivel del curso */}
@@ -740,10 +975,15 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                       <img
                         src={courseData.preview_image}
                         alt="Preview"
-                        className="w-full h-48 object-cover rounded-lg"
+                        className="w-full max-h-80 rounded-lg object-contain"
                       />
                       <button
-                        onClick={() => setCourseData(prev => ({ ...prev, preview_image: null }))}
+                        onClick={async () => {
+                          if (courseData.preview_image) {
+                            await handleImageDelete(courseData.preview_image, 'course');
+                          }
+                          setCourseData(prev => ({ ...prev, preview_image: null }));
+                        }}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                       >
                         <X className="w-4 h-4" />
@@ -930,10 +1170,15 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                               <img
                                 src={lesson.preview_image}
                                 alt="Preview"
-                                className="w-full h-32 object-cover rounded-lg"
+                                className="w-full max-h-48 rounded-lg object-contain"
                               />
                               <button
-                                onClick={() => updateLesson(index, 'preview_image', null)}
+                                onClick={async () => {
+                                  if (lesson.preview_image) {
+                                    await handleImageDelete(lesson.preview_image, 'lesson');
+                                  }
+                                  updateLesson(index, 'preview_image', null);
+                                }}
                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                               >
                                 <X className="w-4 h-4" />
@@ -990,7 +1235,7 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
           {currentStep === 4 && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Revisar y Crear Curso
+                {courseToEdit ? 'Revisar y Actualizar Curso' : 'Revisar y Crear Curso'}
               </h3>
               
               {/* Resumen del curso */}
@@ -998,6 +1243,18 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Resumen del Curso
                 </h4>
+                
+                {/* Imagen del curso */}
+                {courseData.preview_image && (
+                  <div className="mb-6">
+                    <img
+                      src={courseData.preview_image}
+                      alt={courseData.title || 'Preview del curso'}
+                      className="w-full max-h-80 rounded-lg shadow-md object-contain"
+                    />
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Título</p>
@@ -1024,16 +1281,32 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
                     <p className="font-medium text-gray-900 dark:text-white">{courseData.calories_burned} cal</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Estudiantes</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{courseData.students_count || 0} personas</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Calificación</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{courseData.rating || 0} ⭐</p>
-                  </div>
-                  <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Lecciones</p>
                     <p className="font-medium text-gray-900 dark:text-white">{lessons.length} lecciones</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkbox de publicación */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="publish_course"
+                    checked={courseData.is_published}
+                    onChange={(e) => setCourseData(prev => ({ ...prev, is_published: e.target.checked }))}
+                    className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <div>
+                    <label htmlFor="publish_course" className="text-lg font-semibold text-blue-900 dark:text-blue-200 cursor-pointer">
+                      Publicar curso inmediatamente
+                    </label>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      {courseData.is_published 
+                        ? 'El curso será visible en el dashboard y disponible para compra.' 
+                        : 'El curso se guardará como borrador y podrás publicarlo más tarde desde el panel de administración.'
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1094,18 +1367,25 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={loading || !isFormValid()}
+                disabled={loading}
                 className="px-4 py-2 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
-                    <span>Creando...</span>
+                    <span>{courseToEdit ? 'Actualizando...' : 'Creando...'}</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Crear Curso</span>
+                    <span>
+                      {courseToEdit 
+                        ? 'Actualizar Curso' 
+                        : courseData.is_published 
+                          ? 'Crear y Publicar Curso' 
+                          : 'Crear Borrador'
+                      }
+                    </span>
                   </>
                 )}
               </button>
@@ -1124,6 +1404,18 @@ export default function CourseCreator({ onClose, onSuccess }: CourseCreatorProps
           }}
         />
       )}
+
+      {/* Success Modal */}
+      <RogerAlert
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
+        title={courseToEdit ? "¡Curso Actualizado Exitosamente! 🎉" : "¡Curso Creado Exitosamente! 🎉"}
+        message={courseToEdit ? "El curso ha sido actualizado correctamente. Los cambios se reflejarán inmediatamente en el dashboard." : "El curso ha sido creado y está listo para ser publicado. Los estudiantes podrán verlo en el dashboard."}
+        type="success"
+      />
     </div>
   );
 }
