@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, Clock, Users, Star, Filter, Search, ArrowRight, User, BookOpen, Award, TrendingUp, Zap } from 'lucide-react';
 import Footer from '@/components/Footer';
+import { useSimpleCourses } from '@/hooks/useSimpleCourses';
 
 interface Course {
   id: string;
@@ -215,6 +216,9 @@ export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSort, setSelectedSort] = useState('newest');
+  
+  // Usar el hook simple para obtener cursos de Supabase
+  const { courses: supabaseCourses, loading, error, refresh } = useSimpleCourses();
 
   const categories = [
     { id: 'all', name: 'Todos', emoji: '🌟' },
@@ -234,7 +238,30 @@ export default function CoursesPage() {
     { id: 'price-high', name: 'Precio: Mayor a Menor', emoji: '💎' }
   ];
 
-  const filteredCourses = sampleCourses.filter(course => {
+  // Usar cursos de Supabase si están disponibles, sino usar datos de muestra
+  const allCourses = supabaseCourses.length > 0 ? supabaseCourses.map(course => ({
+    id: course.id,
+    title: course.title,
+    instructor: 'RogerBox',
+    category: course.category_name,
+    duration: 30, // Valor por defecto
+    level: course.level as 'Principiante' | 'Intermedio' | 'Avanzado',
+    rating: course.rating,
+    students: course.students_count,
+    price: course.price,
+    originalPrice: course.original_price,
+    thumbnail: course.thumbnail,
+    description: course.description,
+    lessons: course.lessons_count,
+    isNew: course.isNew,
+    isPopular: course.isPopular,
+    discount: course.discount_percentage,
+    tags: [course.category_name],
+    whatYouWillLearn: ['Técnicas avanzadas', 'Rutinas efectivas', 'Motivación constante'],
+    requirements: ['Ropa cómoda', 'Espacio para ejercitarse', 'Motivación']
+  })) : sampleCourses;
+
+  const filteredCourses = allCourses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
@@ -394,9 +421,46 @@ export default function CoursesPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#85ea10]"></div>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Cargando cursos...
+              </h3>
+              <p className="text-white/60">
+                Obteniendo los mejores cursos para ti
+              </p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Error al cargar cursos
+              </h3>
+              <p className="text-white/60 mb-4">
+                {error}
+              </p>
+              <button
+                onClick={refresh}
+                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-3 rounded-xl transition-all duration-300"
+              >
+                Intentar de nuevo
+              </button>
+            </div>
+          )}
+
           {/* Courses Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedCourses.map((course) => (
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {sortedCourses.map((course) => (
               <div
                 key={course.id}
                 className="bg-white/80 dark:bg-white/10 backdrop-blur-lg rounded-2xl overflow-hidden border border-gray-200 dark:border-white/20 hover:bg-gray-50 dark:hover:bg-white/15 hover:border-[#85ea10]/30 hover:scale-[1.02] transition-all duration-300 ease-out cursor-pointer group shadow-lg dark:shadow-none"
@@ -495,9 +559,11 @@ export default function CoursesPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
 
-          {sortedCourses.length === 0 && (
+          {/* No Courses State */}
+          {!loading && !error && sortedCourses.length === 0 && (
             <div className="text-center py-12">
               <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-12 h-12 text-white/40" />

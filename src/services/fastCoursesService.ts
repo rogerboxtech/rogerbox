@@ -30,6 +30,21 @@ class FastCoursesService {
   private loading = false;
 
   /**
+   * Extrae el thumbnail de YouTube de una URL
+   */
+  private getYouTubeThumbnail(url: string): string {
+    try {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      }
+    } catch (error) {
+      console.warn('Error al extraer video ID de YouTube:', error);
+    }
+    return '/images/course-placeholder.jpg';
+  }
+
+  /**
    * Obtiene cursos de forma ULTRA RÁPIDA
    */
   async getCourses(forceRefresh = false): Promise<FastCourse[]> {
@@ -58,12 +73,14 @@ class FastCoursesService {
           title,
           description,
           short_description,
-          thumbnail,
-          preview_image,
           price,
           discount_percentage,
-          category_id,
-          created_at
+          category,
+          created_at,
+          intro_video_url,
+          rating,
+          students_count,
+          calories_burned
         `)
         .eq('is_published', true)
         .order('created_at', { ascending: false })
@@ -98,15 +115,15 @@ class FastCoursesService {
           title: course.title,
           description: course.description || '',
           short_description: course.short_description || '',
-          thumbnail: course.thumbnail || course.preview_image || '/images/course-placeholder.jpg',
-          preview_image: course.preview_image || course.thumbnail || '/images/course-placeholder.jpg',
+          thumbnail: course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg',
+          preview_image: course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg',
           price: course.price || 0,
           original_price: course.discount_percentage > 0 ? course.price : undefined,
           discount_percentage: course.discount_percentage || 0,
-          category_name: categoryMap[course.category_id] || 'Sin categoría',
-          rating: 4.8, // Valor por defecto
-          students_count: 0, // Valor por defecto
-          lessons_count: 1, // Valor por defecto
+          category_name: categoryMap[course.category] || 'Sin categoría',
+          rating: course.rating || 4.8,
+          students_count: course.students_count || 0,
+          lessons_count: 12, // Valor fijo ya que no existe en la BD
           duration: '30 min', // Valor por defecto
           level: 'Intermedio', // Valor por defecto
           isNew,
