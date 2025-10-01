@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { trackCourseView } from '@/lib/analytics';
 import Footer from '@/components/Footer';
 import QuickLoading from '@/components/QuickLoading';
-import { useFastCourses } from '@/hooks/useFastCourses';
+import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
 
 interface UserProfile {
   id: string;
@@ -61,13 +61,13 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  // Usar el hook ULTRA RÁPIDO para cursos
+  // Usar el hook simple para cursos
   const {
     courses: realCourses,
     loading: loadingCourses,
     error: coursesError,
     refresh: refreshCourses
-  } = useFastCourses();
+  } = useUnifiedCourses();
 
   // Funciones de precios sin IVA (temporalmente)
   const calculateFinalPrice = (course: any) => {
@@ -100,6 +100,12 @@ export default function DashboardPage() {
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
   console.log('📊 Dashboard: loadingCourses:', loadingCourses);
+  console.log('📊 Dashboard: coursesError:', coursesError);
+  if (realCourses && realCourses.length > 0) {
+    console.log('📊 Dashboard: Primer curso:', realCourses[0]);
+    console.log('📊 Dashboard: Thumbnail del primer curso:', realCourses[0].thumbnail);
+    console.log('📊 Dashboard: Preview_image del primer curso:', realCourses[0].preview_image);
+  }
   
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalData, setGoalData] = useState({
@@ -179,7 +185,7 @@ export default function DashboardPage() {
         setCategories([
           { id: 'all', name: 'Todos', icon: '🎯', color: '#85ea10' },
           ...(data || []).map(cat => ({
-            id: cat.id,
+            id: cat.name, // Usar el nombre como ID para el filtrado
             name: cat.name,
             icon: cat.icon,
             color: cat.color
@@ -203,7 +209,7 @@ export default function DashboardPage() {
   */
 
   const filteredCourses = realCourses.filter(course => {
-    const matchesCategory = selectedCategory === 'all' || course.category_id === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || course.category_name === selectedCategory;
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.short_description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -410,7 +416,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
         {/* Welcome Message - Centrado arriba del progreso */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">
             ¡Hola, {userProfile.name}! 👋
           </h1>
           <p className="text-lg text-gray-600 dark:text-white/70">
@@ -604,7 +610,7 @@ export default function DashboardPage() {
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.map(course => (
-                <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow flex flex-col">
+                <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 transition-all duration-300 flex flex-col">
                   <div className="relative">
                     <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                       <img 
@@ -654,22 +660,22 @@ export default function DashboardPage() {
                       
                       {/* Estadísticas del curso */}
                       <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
-                        <span className="flex items-center space-x-1">
-                          <Zap className="w-3 h-3 text-[#85ea10]" />
-                          <span>{course.calories_burned || 0} cal</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Play className="w-3 h-3" />
-                          <span>{course.lessons || 1} clases</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{course.duration_days || 15} días</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Users className="w-3 h-3" />
-                          <span>{course.students?.toLocaleString() || 0} personas</span>
-                        </span>
+                      <span className="flex items-center space-x-1">
+                        <Zap className="w-3 h-3 text-[#85ea10]" />
+                        <span>{course.calories_burned || 0} cal</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Play className="w-3 h-3" />
+                        <span>{course.lessons_count || 1} clases</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{course.duration || '30 min'}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Users className="w-3 h-3" />
+                        <span>{course.students_count?.toLocaleString() || 0} personas</span>
+                      </span>
                       </div>
                     </div>
                     <div className="space-y-3">
@@ -678,15 +684,15 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-center space-x-2 mb-1">
                           {course.discount_percentage && course.discount_percentage > 0 ? (
                             <>
-                              <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                              <span className="text-3xl font-black price-text text-gray-900 dark:text-white">
                                 ${calculateFinalPrice(course).toLocaleString('es-CO')}
                               </span>
-                              <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                              <span className="text-xl font-bold text-gray-500 dark:text-white/60 line-through">
                                 ${calculateOriginalPrice(course).toLocaleString('es-CO')}
                               </span>
                             </>
                           ) : (
-                            <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                            <span className="text-3xl font-black price-text text-gray-900 dark:text-white">
                               ${calculateFinalPrice(course).toLocaleString('es-CO')}
                             </span>
                           )}
@@ -738,13 +744,6 @@ export default function DashboardPage() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Estamos preparando los mejores cursos para ti
               </p>
-              <button
-                onClick={refreshCourses}
-                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Recargar</span>
-              </button>
             </div>
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
@@ -761,11 +760,11 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map(course => (
-              <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-150 ease-out flex flex-col">
+              <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col">
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={course.thumbnail || course.preview_image || '/images/course-placeholder.jpg'} 
+                      src={course.thumbnail || '/images/course-placeholder.jpg'} 
                       alt={course.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -827,15 +826,15 @@ export default function DashboardPage() {
                       </span>
                       <span className="flex items-center space-x-1">
                         <Play className="w-3 h-3" />
-                        <span>{course.lessons || 1} clases</span>
+                        <span>{course.lessons_count || 1} clases</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />
-                        <span>{course.duration_days || 15} días</span>
+                        <span>{course.duration || '30 min'}</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Users className="w-3 h-3" />
-                        <span>{course.students?.toLocaleString() || 0} personas</span>
+                        <span>{course.students_count?.toLocaleString() || 0} personas</span>
                       </span>
                     </div>
                   </div>
@@ -845,15 +844,15 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-center space-x-2 mb-1">
                         {course.discount_percentage && course.discount_percentage > 0 ? (
                           <>
-                            <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                            <span className="text-3xl font-black price-text text-gray-900 dark:text-white">
                               ${calculateFinalPrice(course).toLocaleString('es-CO')}
                             </span>
-                            <span className="text-lg text-gray-400 dark:text-white/50 line-through">
+                            <span className="text-xl font-bold text-gray-500 dark:text-white/60 line-through">
                               ${calculateOriginalPrice(course).toLocaleString('es-CO')}
                             </span>
                           </>
                         ) : (
-                          <span className="text-2xl font-bold price-text text-gray-900 dark:text-white">
+                          <span className="text-3xl font-black price-text text-gray-900 dark:text-white">
                             ${calculateFinalPrice(course).toLocaleString('es-CO')}
                           </span>
                         )}

@@ -7,7 +7,7 @@ import { Play, Clock, Users, Star, Search, ArrowRight, User, BookOpen, Award, Tr
 import QuickLoading from '@/components/QuickLoading';
 import Footer from '@/components/Footer';
 import { trackCourseView } from '@/lib/analytics';
-import { useFastCourses } from '@/hooks/useFastCourses';
+import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
 
 interface Course {
   id: string;
@@ -44,7 +44,7 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   // Usar el hook ULTRA RÁPIDO
-  const { courses, loading: loadingCourses, error: coursesError } = useFastCourses();
+  const { courses, loading: loadingCourses, error: coursesError } = useUnifiedCourses();
 
   // Si el usuario está autenticado, redirigir al dashboard
   if (status === 'authenticated') {
@@ -67,9 +67,9 @@ export default function HomePage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-gray-900/80 border-b border-gray-700 sticky top-0 z-50 backdrop-blur-lg">
+      <header className="bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-3">
@@ -79,25 +79,25 @@ export default function HomePage() {
                 }}
                 className="flex items-center space-x-3 hover:scale-105 hover:opacity-90 transition-all duration-300 ease-out group"
               >
-                <h1 className="text-3xl font-black text-white group-hover:text-[#85ea10] transition-colors duration-300 uppercase tracking-wider">
-                  ROGER<span className="text-[#85ea10] group-hover:text-white transition-colors duration-300">BOX</span>
+                <h1 className="text-3xl font-black text-gray-900 dark:text-white group-hover:text-[#85ea10] transition-colors duration-300 uppercase tracking-tight">
+                  ROGER<span className="text-[#85ea10] group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-300">BOX</span>
                 </h1>
               </button>
             </div>
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/#cursos" className="text-white/80 hover:text-white transition-colors">Cursos</a>
-              <a href="/about" className="text-white/80 hover:text-white transition-colors">Qué es RogerBox</a>
-              <a href="/enterprises" className="text-white/80 hover:text-white transition-colors">Servicio para Empresas</a>
-              <a href="/contact" className="text-white/80 hover:text-white transition-colors">Contacto</a>
+              <a href="/#cursos" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Cursos</a>
+              <a href="/about" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Qué es RogerBox</a>
+              <a href="/enterprises" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Servicio para Empresas</a>
+              <a href="/contact" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Contacto</a>
             </nav>
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/login')}
-                className="text-white/80 hover:text-white transition-colors"
+                className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Iniciar Sesión
               </button>
@@ -116,11 +116,11 @@ export default function HomePage() {
       <section className="py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center min-h-[200px] text-center">
-            <h1 className="text-3xl md:text-4xl font-black text-white mb-4 uppercase tracking-wider">
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-4 uppercase tracking-tight">
               QUEMA GRASA CON{' '}
               <span className="text-[#85ea10]">ENTRENAMIENTOS INTENSOS</span>
             </h1>
-            <p className="text-lg text-white/80 mb-4 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-700 dark:text-white/80 mb-4 max-w-3xl mx-auto">
               Compra tu curso, elige tu fecha de inicio y cada día se desbloquea una nueva clase. 
               ¡Empieza ya y quema grasa con entrenamientos HIIT efectivos!
             </p>
@@ -146,7 +146,7 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayedCourses.map(course => (
-              <div key={course.id} className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-white/12 transition-all duration-150 ease-out flex flex-col">
+              <div key={course.id} className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-gray-50 dark:hover:bg-white/12 transition-all duration-150 ease-out flex flex-col">
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
@@ -185,8 +185,8 @@ export default function HomePage() {
                 </div>
                 <div className="p-6 flex flex-col flex-grow">
                   {/* Información de calorías y clases */}
-                  <h3 className="text-xl font-bold course-title text-white mb-2">{course.title}</h3>
-                  <p className="text-white/70 text-sm mb-3">{course.short_description || course.description}</p>
+                  <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                  <p className="text-gray-700 dark:text-white/70 text-sm mb-3">{course.short_description || course.description}</p>
                   
                   {/* Cuadro verde unificado */}
                   <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
@@ -200,13 +200,13 @@ export default function HomePage() {
                     {/* Mensaje motivacional */}
                     <div className="flex items-center justify-center space-x-2 mb-3">
                       <Zap className="w-4 h-4 text-[#85ea10]" />
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         ¡Sin límites! Para todos los niveles
                       </span>
                     </div>
                     
                     {/* Estadísticas del curso */}
-                    <div className="flex items-center justify-between text-xs text-white/70">
+                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
                       <span className="flex items-center space-x-1">
                         <Zap className="w-3 h-3 text-[#85ea10]" />
                         <span>{course.students_count || 0} estudiantes</span>
@@ -232,15 +232,15 @@ export default function HomePage() {
                       <div className="flex items-center justify-center space-x-2 mb-1">
                         {course.original_price ? (
                           <>
-                            <span className="text-2xl font-bold text-white">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">
                               ${course.price?.toLocaleString('es-CO')}
                             </span>
-                            <span className="text-lg text-white/50 line-through">
+                            <span className="text-lg text-gray-500 dark:text-white/50 line-through">
                               ${course.original_price?.toLocaleString('es-CO')}
                             </span>
                           </>
                         ) : (
-                          <span className="text-2xl font-bold text-white">
+                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
                             ${course.price?.toLocaleString('es-CO')}
                           </span>
                         )}
@@ -291,28 +291,28 @@ export default function HomePage() {
 
 
       {/* Nutrition Plans Section */}
-      <section className="py-20 bg-white/5">
+      <section className="py-20 bg-gray-50 dark:bg-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Planes <span className="text-[#85ea10]">Nutricionales</span>
             </h2>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 dark:text-white/80 max-w-3xl mx-auto">
               Complementa tu entrenamiento con planes alimentarios personalizados diseñados por expertos en nutrición
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Plan Básico */}
-            <div className="bg-white/10 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
+            <div className="bg-white dark:bg-white/10 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-white/20">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-[#85ea10] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Utensils className="w-8 h-8 text-black" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   Plan Básico
                 </h3>
-                <p className="text-white/80">
+                <p className="text-gray-700 dark:text-white/80">
                   Ideal para comenzar tu transformación
                 </p>
               </div>
@@ -320,25 +320,25 @@ export default function HomePage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Plan nutricional personalizado</span>
+                  <span className="text-gray-700 dark:text-white/80">Plan nutricional personalizado</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Recetas semanales</span>
+                  <span className="text-gray-700 dark:text-white/80">Recetas semanales</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Lista de compras</span>
+                  <span className="text-gray-700 dark:text-white/80">Lista de compras</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Seguimiento semanal</span>
+                  <span className="text-gray-700 dark:text-white/80">Seguimiento semanal</span>
                 </div>
               </div>
 
               <div className="text-center">
-                <div className="text-3xl font-bold text-[#85ea10] mb-2">$50.000</div>
-                <div className="text-white/60 text-sm mb-4">por mes</div>
+                <div className="text-3xl font-black text-[#85ea10] mb-2">$50.000</div>
+                <div className="text-gray-600 dark:text-white/60 text-sm mb-4">por mes</div>
                 <button
                   onClick={() => router.push('/contact')}
                   className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-xl transition-all duration-300 hover:scale-105"
@@ -360,10 +360,10 @@ export default function HomePage() {
                 <div className="w-16 h-16 bg-[#85ea10] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="w-8 h-8 text-black" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   Plan Avanzado
                 </h3>
-                <p className="text-white/80">
+                <p className="text-gray-700 dark:text-white/80">
                   Para objetivos específicos
                 </p>
               </div>
@@ -371,29 +371,29 @@ export default function HomePage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Todo del Plan Básico</span>
+                  <span className="text-gray-700 dark:text-white/80">Todo del Plan Básico</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Análisis de composición corporal</span>
+                  <span className="text-gray-700 dark:text-white/80">Análisis de composición corporal</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Ajustes semanales</span>
+                  <span className="text-gray-700 dark:text-white/80">Ajustes semanales</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Consultas ilimitadas</span>
+                  <span className="text-gray-700 dark:text-white/80">Consultas ilimitadas</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Suplementación personalizada</span>
+                  <span className="text-gray-700 dark:text-white/80">Suplementación personalizada</span>
                 </div>
               </div>
 
               <div className="text-center">
-                <div className="text-3xl font-bold text-[#85ea10] mb-2">$100.000</div>
-                <div className="text-white/60 text-sm mb-4">por mes</div>
+                <div className="text-3xl font-black text-[#85ea10] mb-2">$100.000</div>
+                <div className="text-gray-600 dark:text-white/60 text-sm mb-4">por mes</div>
                 <button
                   onClick={() => router.push('/contact')}
                   className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-xl transition-all duration-300 hover:scale-105"
@@ -404,15 +404,15 @@ export default function HomePage() {
             </div>
 
             {/* Plan Premium */}
-            <div className="bg-white/10 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
+            <div className="bg-white dark:bg-white/10 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-white/20">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-[#85ea10] to-[#7dd30f] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Award className="w-8 h-8 text-black" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   Plan Premium
                 </h3>
-                <p className="text-white/80">
+                <p className="text-gray-700 dark:text-white/80">
                   Transformación completa
                 </p>
               </div>
@@ -420,29 +420,29 @@ export default function HomePage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Todo del Plan Avanzado</span>
+                  <span className="text-gray-700 dark:text-white/80">Todo del Plan Avanzado</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Sesiones 1:1 con nutricionista</span>
+                  <span className="text-gray-700 dark:text-white/80">Sesiones 1:1 con nutricionista</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Plan de suplementos incluido</span>
+                  <span className="text-gray-700 dark:text-white/80">Plan de suplementos incluido</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Seguimiento diario</span>
+                  <span className="text-gray-700 dark:text-white/80">Seguimiento diario</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5 text-[#85ea10] flex-shrink-0" />
-                  <span className="text-white/80">Garantía de resultados</span>
+                  <span className="text-gray-700 dark:text-white/80">Garantía de resultados</span>
                 </div>
               </div>
 
               <div className="text-center">
-                <div className="text-3xl font-bold text-[#85ea10] mb-2">$150.000</div>
-                <div className="text-white/60 text-sm mb-4">por mes</div>
+                <div className="text-3xl font-black text-[#85ea10] mb-2">$150.000</div>
+                <div className="text-gray-600 dark:text-white/60 text-sm mb-4">por mes</div>
                 <button
                   onClick={() => router.push('/contact')}
                   className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-xl transition-all duration-300 hover:scale-105"
