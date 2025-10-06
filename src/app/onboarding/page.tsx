@@ -33,8 +33,8 @@ export default function OnboardingPage() {
     }
   }, [status, router]);
 
-  const handleComplete = async (profile: UserProfile) => {
-    if (!session?.user?.email || !session?.user?.id) {
+  const handleComplete = async (profile: any) => {
+    if (!((session as any)?.user?.email) || !((session as any)?.user?.id)) {
       console.error('No hay sesión de usuario');
       return;
     }
@@ -43,8 +43,8 @@ export default function OnboardingPage() {
 
     try {
       console.log('=== DEBUG ONBOARDING ===');
-      console.log('Session user ID:', session.user.id);
-      console.log('Session user email:', session.user.email);
+      console.log('Session user ID:', (session as any).user.id);
+      console.log('Session user email:', (session as any).user.email);
       console.log('Profile data:', profile);
       console.log('========================');
 
@@ -52,7 +52,7 @@ export default function OnboardingPage() {
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('id', session.user.id)
+        .eq('id', (session as any).user.id)
         .maybeSingle();
 
       if (selectError) {
@@ -65,8 +65,8 @@ export default function OnboardingPage() {
       if (existingProfile) {
         // Actualizar perfil existente
         console.log('Actualizando perfil existente...');
-        const updateData = {
-          name: profile.name || session.user.name || 'Usuario',
+        const updateData: any = {
+          name: profile.name || (session as any).user.name || 'Usuario',
           height: profile.height,
           weight: profile.weight,
           gender: profile.gender,
@@ -85,15 +85,15 @@ export default function OnboardingPage() {
         const { error: updateError } = await supabase
           .from('profiles')
           .update(updateData)
-          .eq('id', session.user.id);
+          .eq('id', (session as any).user.id);
         error = updateError;
       } else {
         // Crear nuevo perfil
         console.log('Creando nuevo perfil...');
-        const insertData = {
-          id: session.user.id,
-          name: profile.name || session.user.name || 'Usuario',
-          email: session.user.email,
+        const insertData: any = {
+          id: (session as any).user.id,
+          name: profile.name || (session as any).user.name || 'Usuario',
+          email: (session as any).user.email,
           height: profile.height,
           weight: profile.weight,
           gender: profile.gender,
@@ -147,7 +147,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       <Onboarding 
-        onComplete={handleComplete} 
+        onComplete={handleComplete as any} 
         isUpdating={isUpdating}
         userName={session?.user?.name || 'Usuario'}
       />

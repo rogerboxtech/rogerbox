@@ -42,7 +42,9 @@ export default function AdminPanel() {
     setStats(appStore.getAdminStats());
     setClassAttendances(appStore.getClassAttendances(selectedDate));
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [selectedDate]);
 
   const handleAddVideo = (e: React.FormEvent) => {

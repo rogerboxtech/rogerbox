@@ -184,15 +184,15 @@ export default function ComplementDetail() {
       
       return () => clearTimeout(timer);
     }
-  }, [complement, status, session?.user?.id]);
+  }, [complement, status, (session as any)?.user?.id]);
 
   // useEffect adicional que se ejecuta cuando la página está completamente cargada
   useEffect(() => {
-    console.log('🔍 useEffect de montaje - complement:', !!complement, 'session:', !!session?.user?.id, 'status:', status);
+    console.log('🔍 useEffect de montaje - complement:', !!complement, 'session:', !!(session as any)?.user?.id, 'status:', status);
     
     const loadDataOnMount = () => {
       console.log('🚀 Intentando carga inicial...');
-      if (complement && session?.user?.id && status === 'authenticated') {
+      if (complement && (session as any)?.user?.id && status === 'authenticated') {
         console.log('🚀 Carga inicial: Ejecutando loadUserInteractions...');
         loadUserInteractions(complement.id);
       } else {
@@ -213,8 +213,8 @@ export default function ComplementDetail() {
   }, []); // Solo se ejecuta una vez al montar
 
   const handleFavorite = async () => {
-    if (!complement || !session?.user?.id || isFavoriting) {
-      if (!session?.user?.id) {
+    if (!complement || !(session as any)?.user?.id || isFavoriting) {
+      if (!(session as any)?.user?.id) {
         console.log('Usuario no autenticado - redirigiendo al login');
         router.push('/');
       }
@@ -276,8 +276,8 @@ export default function ComplementDetail() {
   };
 
   const handleComplete = async () => {
-    if (!complement || !session?.user?.id || isCompleting) {
-      if (!session?.user?.id) {
+    if (!complement || !(session as any)?.user?.id || isCompleting) {
+      if (!(session as any)?.user?.id) {
         console.log('Usuario no autenticado - redirigiendo al login');
         router.push('/');
       }
@@ -305,8 +305,8 @@ export default function ComplementDetail() {
         // Actualizar el estado local también
         setComplement(prev => prev ? {
           ...prev,
-          times_completed: data.times_completed,
-          last_completed: data.last_completed_at
+          timesCompleted: data.times_completed,
+          lastCompleted: data.last_completed_at
         } : null);
         
         // Siempre marcar como completado después de hacer clic
@@ -320,8 +320,8 @@ export default function ComplementDetail() {
   };
 
   const handleRating = async (rating: number) => {
-    if (!complement || !session?.user?.id || isRating) {
-      if (!session?.user?.id) {
+    if (!complement || !(session as any)?.user?.id || isRating) {
+      if (!(session as any)?.user?.id) {
         console.log('Usuario no autenticado - redirigiendo al login');
         router.push('/');
       }
@@ -357,7 +357,7 @@ export default function ComplementDetail() {
 
 
   const handleAddNote = async () => {
-    if (!complement || !session?.user?.id || !newNote.trim() || isAddingNote) {
+    if (!complement || !(session as any)?.user?.id || !newNote.trim() || isAddingNote) {
       return;
     }
 
@@ -615,12 +615,12 @@ export default function ComplementDetail() {
                   <div className="grid grid-cols-2 gap-4 text-sm text-white/80">
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4" />
-                      <span>Última vez: {complement?.last_completed ? new Date(complement.last_completed).toLocaleDateString() : 'Nunca'}</span>
+                      <span>Última vez: {complement?.lastCompleted ? new Date(complement.lastCompleted).toLocaleDateString() : 'Nunca'}</span>
                     </div>
-                           <div className="flex items-center space-x-2">
-                             <TrendingUp className="w-4 h-4" />
-                             <span>Veces completado: {complement?.times_completed || 0}</span>
-                           </div>
+                            <div className="flex items-center space-x-2">
+                              <TrendingUp className="w-4 h-4" />
+                              <span>Veces completado: {complement?.timesCompleted || 0}</span>
+                            </div>
                   </div>
                 )}
               </div>

@@ -106,7 +106,7 @@ export function useAuth() {
   }
 
   const updateProfile = async (profileData: Partial<UserProfile>) => {
-    if (!session?.user?.id) return { success: false, error: 'No hay sesión activa' }
+    if (!(session?.user as any)?.id) return { success: false, error: 'No hay sesión activa' }
 
     setIsLoading(true)
     setError(null)
@@ -118,7 +118,7 @@ export function useAuth() {
           ...profileData,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', session.user.id)
+        .eq('id', (session?.user as any)?.id)
 
       if (error) {
         throw new Error(error.message)

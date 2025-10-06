@@ -3,7 +3,7 @@ export interface User {
   name: string;
   weight: number; // in kg
   height: number; // in cm
-  gender: 'male' | 'female';
+  gender: 'male' | 'female' | 'other';
   goals: string[];
   targetWeight?: number; // calculated target weight
   membership?: Membership;

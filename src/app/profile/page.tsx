@@ -58,7 +58,7 @@ export default function ProfilePage() {
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
-  const [favorites, setFavorites] = useState({
+  const [favorites, setFavorites] = useState<any>({
     complements: [],
     courses: [],
     blog: []
@@ -67,7 +67,7 @@ export default function ProfilePage() {
 
   // Cargar favoritos del usuario
   const fetchFavorites = async () => {
-    if (!session?.user?.id) return;
+    if (!((session as any)?.user?.id)) return;
     
     setFavoritesLoading(true);
     try {
@@ -89,7 +89,7 @@ export default function ProfilePage() {
         }
       ];
       
-      setFavorites(prev => ({
+      setFavorites((prev: any) => ({
         ...prev,
         courses: mockCourses
       }));
@@ -103,12 +103,12 @@ export default function ProfilePage() {
   // Cargar perfil del usuario
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.id) {
+      if (((session as any)?.user?.id)) {
         try {
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', (session as any).user.id)
             .single();
 
           if (error) {
@@ -168,7 +168,7 @@ export default function ProfilePage() {
           email: editForm.email,
           updated_at: new Date().toISOString()
         })
-        .eq('id', session?.user?.id);
+        .eq('id', (session as any)?.user?.id);
 
       if (profileError) {
         setEditError('Error al actualizar el perfil');

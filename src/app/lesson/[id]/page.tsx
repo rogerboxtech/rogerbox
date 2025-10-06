@@ -143,17 +143,17 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !session?.user?.id) return;
+    if (!newComment.trim() || !(session as any)?.user?.id) return;
 
     // Simular envío de comentario
     const newCommentData: Comment = {
       id: Date.now().toString(),
       lesson_id: resolvedParams.id,
-      user_id: session.user.id,
+      user_id: (session as any).user.id,
       content: newComment.trim(),
       created_at: new Date().toISOString(),
-      user_name: session.user.name || 'Usuario',
-      user_avatar: session.user.image || null,
+      user_name: (session as any).user.name || 'Usuario',
+      user_avatar: (session as any).user.image || null,
       likes_count: 0,
       is_liked: false
     };

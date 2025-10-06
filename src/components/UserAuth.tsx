@@ -29,7 +29,9 @@ export default function UserAuth() {
     setCurrentUser(state.currentUser);
     setIsAdminMode(state.isAdminMode);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleRegister = (e: React.FormEvent) => {
@@ -39,7 +41,7 @@ export default function UserAuth() {
     const weightNum = parseFloat(weight);
     if (isNaN(weightNum) || weightNum <= 0) return;
 
-    appStore.createUser(name.trim(), weightNum);
+    appStore.createUser(name.trim(), weightNum, 170, 'other', ['fitness']);
     setName('');
     setWeight('');
     setIsRegistering(false);

@@ -47,14 +47,14 @@ export default function DashboardPage() {
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.id) {
+      if ((session as any)?.user?.id) {
         try {
-          console.log('Dashboard: Buscando perfil para ID:', session.user.id);
+          console.log('Dashboard: Buscando perfil para ID:', (session as any).user.id);
           
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', (session as any).user.id)
             .maybeSingle();
 
           // Si no hay perfil o el perfil está incompleto, redirigir al onboarding
