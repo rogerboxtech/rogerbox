@@ -278,6 +278,8 @@ const defaultState: AppState = {
       targetWeight: 65,
       createdAt: new Date(),
       membership: {
+        id: 'membership-demo-1',
+        userId: 'demo-user-1',
         isActive: true,
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
@@ -632,7 +634,7 @@ class AppStore {
     return newVideo;
   }
 
-  getAdminStats(): AdminStats {
+  getAdminStats(): any {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
@@ -660,8 +662,8 @@ class AppStore {
     };
   }
 
-  getClassAttendances(classDate: Date): ClassAttendance[] {
-    const classAttendances: ClassAttendance[] = [];
+  getClassAttendances(classDate: Date): any[] {
+    const classAttendances: any[] = [];
     
     this.state.classes.forEach(classData => {
       const attendances = this.state.users
@@ -705,7 +707,9 @@ export const useStore = () => {
       setState(appStore.getState());
     });
     
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
   
   return {

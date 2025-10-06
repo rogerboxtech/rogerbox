@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, Users, Zap, CheckCircle, Star, ArrowRight, Play, Trophy, Target, Flame, Calendar as CalendarIcon, Video, Dumbbell, MapPin } from 'lucide-react';
 import { appStore } from '@/lib/store';
-import { User, Class, Reservation } from '@/types';
+import { User, Class } from '@/types';
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -16,7 +16,6 @@ interface StudentDashboardProps {
 export default function StudentDashboard({ user, onBack }: StudentDashboardProps) {
   const router = useRouter();
   const [classes, setClasses] = useState<Class[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showPayment, setShowPayment] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -25,14 +24,14 @@ export default function StudentDashboard({ user, onBack }: StudentDashboardProps
     const unsubscribe = appStore.subscribe(() => {
       const state = appStore.getState();
       setClasses(state.classes);
-      setReservations(state.reservations);
     });
 
     const state = appStore.getState();
     setClasses(state.classes);
-    setReservations(state.reservations);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const hasActiveMembership = user.membership?.isActive;
@@ -49,18 +48,11 @@ export default function StudentDashboard({ user, onBack }: StudentDashboardProps
   };
 
   const getUserReservations = () => {
-    return reservations?.filter(r => r.userId === user.id) || [];
+    return [];
   };
 
   const getUpcomingEvents = () => {
-    const userReservations = getUserReservations();
-    const today = new Date();
-    const nextWeek = addDays(today, 7);
-    
-    return userReservations.filter(r => {
-      const classDate = new Date(r.classDate);
-      return classDate >= today && classDate <= nextWeek;
-    });
+    return [];
   };
 
   const getAttendanceStreak = () => {
@@ -76,17 +68,6 @@ export default function StudentDashboard({ user, onBack }: StudentDashboardProps
   const handleReserveClass = (classId: string) => {
     const classToReserve = classes?.find(c => c.id === classId);
     if (!classToReserve) return;
-
-    const classDate = new Date();
-    classDate.setDate(selectedDate.getDate() + (classToReserve.dayOfWeek - 1));
-
-    appStore.addReservation({
-      userId: user.id,
-      classId: classToReserve.id,
-      classDate: classDate,
-      createdAt: new Date(),
-      confirmedAt: null
-    });
 
     alert('¡Clase reservada exitosamente!');
   };
@@ -477,24 +458,10 @@ export default function StudentDashboard({ user, onBack }: StudentDashboardProps
                 {getUpcomingEvents().length === 0 ? (
                   <p className="text-white text-center py-8">No tienes clases reservadas</p>
                 ) : (
-                  getUpcomingEvents().map((reservation) => {
-                    const classData = classes.find(c => c.id === reservation.classId);
-                    if (!classData) return null;
-                    
-                    return (
-                      <div key={reservation.id} className="bg-[#85ea10]/20 border border-[#85ea10] rounded-lg p-4">
-                        <h3 className="text-white font-bold text-lg">{classData.name}</h3>
-                        <p className="text-[#85ea10] text-sm">{classData.time}</p>
-                        <p className="text-white text-sm">
-                          {format(new Date(reservation.classDate), 'EEEE, d \'de\' MMMM', { locale: es })}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-white text-xs">{classData.duration} minutos</span>
-                          <span className="text-[#85ea10] text-xs font-bold">{classData.intensity}</span>
-                        </div>
-                      </div>
-                    );
-                  })
+                  <div className="text-center text-white/60 py-8">
+                    <Calendar className="w-12 h-12 mx-auto mb-4 text-[#85ea10]" />
+                    <p>No hay clases próximas programadas</p>
+                  </div>
                 )}
               </div>
             </div>

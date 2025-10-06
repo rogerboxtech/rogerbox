@@ -25,7 +25,9 @@ export default function VideoLibraryModule() {
     setVideos(state.videos);
     setVideoPurchases(state.currentUser?.videoPurchases || []);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   if (!currentUser) return null;

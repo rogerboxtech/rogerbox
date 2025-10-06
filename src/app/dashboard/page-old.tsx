@@ -58,15 +58,15 @@ export default function DashboardPage() {
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.id) {
+      if ((session as any)?.user?.id) {
         try {
-          console.log('Dashboard: Buscando perfil para ID:', session.user.id);
+          console.log('Dashboard: Buscando perfil para ID:', (session as any).user.id);
           
           // Primero buscar por ID (más confiable)
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', (session as any).user.id)
             .maybeSingle();
 
           // Si no hay perfil o el perfil está incompleto, redirigir al onboarding
@@ -91,7 +91,7 @@ export default function DashboardPage() {
             const { data: emailData, error: emailError } = await supabase
               .from('profiles')
               .select('*')
-              .eq('email', session.user.email)
+              .eq('email', (session as any).user.email)
               .maybeSingle();
 
             if (emailError) {
@@ -107,9 +107,9 @@ export default function DashboardPage() {
               console.log('Dashboard: No se encontró perfil, creando uno nuevo');
               // Crear perfil básico solo en memoria, no en Supabase
               const newProfile = {
-                id: session.user.id,
-                name: session.user.name || 'Usuario',
-                email: session.user.email || '',
+                id: (session as any).user.id,
+                name: (session as any).user.name || 'Usuario',
+                email: (session as any).user.email || '',
                 height: 170,
                 weight: 70,
                 gender: 'other' as const,
@@ -139,14 +139,14 @@ export default function DashboardPage() {
 
   // Refrescar datos cada vez que se monta el componente
   useEffect(() => {
-    if (session?.user?.id && !userProfile) {
+    if ((session as any)?.user?.id && !userProfile) {
       const refreshProfile = async () => {
         try {
           console.log('Dashboard: Refrescando perfil...');
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', (session as any).user.id)
             .single();
 
           if (!error && data) {
@@ -160,7 +160,7 @@ export default function DashboardPage() {
       
       refreshProfile();
     }
-  }, [session?.user?.id, userProfile]);
+  }, [(session as any)?.user?.id, userProfile]);
 
   if (status === 'loading' || loading) {
     return <SimpleLoading message="Cargando dashboard..." size="lg" showProgress={true} />;

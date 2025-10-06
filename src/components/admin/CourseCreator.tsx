@@ -1269,7 +1269,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Precio</p>
                     <p className="font-medium text-gray-900 dark:text-white">
-                      ${courseData.price} {courseData.discount_percentage > 0 && `(${courseData.discount_percentage}% descuento)`}
+                      ${courseData.price} {courseData.discount_percentage && courseData.discount_percentage > 0 && `(${courseData.discount_percentage}% descuento)`}
                     </p>
                   </div>
                   <div>

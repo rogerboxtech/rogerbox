@@ -23,7 +23,7 @@ export default function NutritionalPlanManagement({ plans, onAddPlan, onEditPlan
     category: 'weight_loss' as 'weight_loss' | 'muscle_gain' | 'maintenance' | 'detox',
     videoUrl: '',
     thumbnailUrl: '',
-    menu: [],
+    menu: [] as any[],
     nutritionalInfo: {
       totalCalories: 0,
       protein: 0,

@@ -133,7 +133,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const checkUserRating = async () => {
-    if (!session?.user?.id) return;
+    if (!(session as any)?.user?.id) return;
     
     try {
       // Por ahora, simulamos que el usuario no ha calificado
@@ -145,7 +145,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleEnroll = async () => {
-    if (!session?.user?.id) {
+    if (!(session as any)?.user?.id) {
       router.push('/login');
       return;
     }

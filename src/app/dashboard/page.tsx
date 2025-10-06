@@ -120,14 +120,14 @@ export default function DashboardPage() {
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (session?.user?.id) {
+      if ((session as any)?.user?.id) {
         try {
-          console.log('Dashboard: Buscando perfil para ID:', session.user.id);
+          console.log('Dashboard: Buscando perfil para ID:', (session as any).user.id);
           
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', (session as any).user.id)
             .maybeSingle();
 
           // Si no hay perfil o el perfil está incompleto, redirigir al onboarding
@@ -215,7 +215,7 @@ export default function DashboardPage() {
     return matchesCategory && matchesSearch;
   });
 
-  const recommendedCourses = realCourses.filter(course => course.isRecommended);
+  const recommendedCourses = realCourses.filter(course => (course.rating ?? 0) >= 4.5);
 
   // Función para calcular IMC y dar recomendaciones
   const calculateBMI = (weight: number, height: number) => {
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                     <User className="w-4 h-4" />
                     <span>Mi Perfil</span>
                   </a>
-                  {session?.user?.id === 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e' && (
+                  {(session as any)?.user?.id === 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e' && (
                     <button
                       onClick={() => router.push('/admin')}
                       className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -425,7 +425,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Progress Tracking Section - Solo si el usuario ha comprado cursos */}
-        {userProfile && userProfile.purchased_courses?.length > 0 && (
+        {userProfile && (userProfile as any)?.purchased_courses?.length > 0 && (
           <div className="mb-8">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
               <div className="flex items-center space-x-2 mb-3">
@@ -553,7 +553,7 @@ export default function DashboardPage() {
         )}
 
         {/* Welcome Section for New Users - Solo si no ha comprado cursos */}
-        {userProfile && (!userProfile.purchased_courses || userProfile.purchased_courses.length === 0) && (
+        {userProfile && (!((userProfile as any)?.purchased_courses) || (userProfile as any)?.purchased_courses.length === 0) && (
           <div className="mb-8">
             <div className="bg-gradient-to-r from-[#85ea10]/10 to-[#7dd30f]/10 rounded-2xl p-6 border border-[#85ea10]/20">
               <div className="text-center">
@@ -662,7 +662,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
                       <span className="flex items-center space-x-1">
                         <Zap className="w-3 h-3 text-[#85ea10]" />
-                        <span>{course.calories_burned || 0} cal</span>
+                        <span>{(course as any)?.calories_burned || 0} cal</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Play className="w-3 h-3" />
@@ -822,7 +822,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
                       <span className="flex items-center space-x-1">
                         <Zap className="w-3 h-3 text-[#85ea10]" />
-                        <span>{course.calories_burned || 0} cal</span>
+                        <span>{(course as any)?.calories_burned || 0} cal</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Play className="w-3 h-3" />

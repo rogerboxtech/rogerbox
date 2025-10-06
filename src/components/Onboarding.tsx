@@ -165,7 +165,7 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
             <span>2010</span>
           </div>
           <div className="text-center text-sm text-gray-500 dark:text-white/60">
-            Edad: {new Date().getFullYear() - profile.birthYear} años
+            Edad: {profile.birthYear ? new Date().getFullYear() - profile.birthYear : 'No especificada'} años
           </div>
         </div>
       )
@@ -223,13 +223,13 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
             <button
               key={habit.id}
               onClick={() => {
-                const newHabits = profile.dietaryHabits.includes(habit.id)
-                  ? profile.dietaryHabits.filter(h => h !== habit.id)
-                  : [...profile.dietaryHabits, habit.id];
+                const newHabits = (profile.dietaryHabits || []).includes(habit.id)
+                  ? (profile.dietaryHabits || []).filter(h => h !== habit.id)
+                  : [...(profile.dietaryHabits || []), habit.id];
                 setProfile({...profile, dietaryHabits: newHabits});
               }}
               className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                profile.dietaryHabits.includes(habit.id)
+                (profile.dietaryHabits || []).includes(habit.id)
                   ? 'border-[#85ea10] bg-[#85ea10]/10 text-[#85ea10]'
                   : 'border-gray-200 dark:border-white/30 text-gray-900 dark:text-white hover:border-[#85ea10]/50'
               }`}

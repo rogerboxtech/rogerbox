@@ -28,7 +28,9 @@ export default function AttendanceModule() {
     setClasses(state.classes);
     setReservations(state.currentUser?.reservations || []);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   if (!currentUser) return null;

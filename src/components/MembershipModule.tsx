@@ -18,7 +18,9 @@ export default function MembershipModule() {
     const state = appStore.getState();
     setCurrentUser(state.currentUser);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   if (!currentUser) return null;
