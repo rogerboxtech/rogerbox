@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Clock, Users, Star, Filter, Search, ArrowRight, Trophy, Target, Zap, Utensils, BookOpen, ChefHat } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { Play, Clock, Users, Star, Filter, Search, ArrowRight, Trophy, Target, Zap, Utensils, BookOpen, ChefHat, User, LogOut, ChevronDown, Settings, Bookmark } from 'lucide-react';
+// ComplementSection removed - focusing on courses only
 
 interface Course {
   id: string;
@@ -22,6 +24,9 @@ interface Course {
 
 interface CourseDashboardProps {
   userProfile: {
+    id: string;
+    name: string;
+    email: string;
     height: number;
     gender: string;
     weight: number;
@@ -33,6 +38,43 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Lógica inteligente para determinar el estado del usuario
+  console.log('CourseDashboard - userProfile:', userProfile);
+  console.log('CourseDashboard - goals:', userProfile?.goals);
+  console.log('CourseDashboard - goals length:', userProfile?.goals?.length);
+  
+  const isNewUser = !userProfile?.goals || userProfile.goals.length === 0;
+  const hasCompletedOnboarding = userProfile?.goals && userProfile.goals.length > 0;
+  const hasEnrolledCourses = false; // TODO: Implementar lógica real de cursos inscritos
+  
+  console.log('CourseDashboard - isNewUser:', isNewUser);
+  console.log('CourseDashboard - hasCompletedOnboarding:', hasCompletedOnboarding);
+
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirect: false });
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const categories = [
     { id: 'all', name: 'Todos', icon: '🎯' },
@@ -40,118 +82,114 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
     { id: 'tone', name: 'Tonificar', icon: '💪' },
     { id: 'gain_muscle', name: 'Ganar Músculo', icon: '🏋️' },
     { id: 'endurance', name: 'Resistencia', icon: '🏃' },
-    { id: 'flexibility', name: 'Flexibilidad', icon: '🧘' },
-    { id: 'strength', name: 'Fuerza', icon: '⚡' }
+    { id: 'hiit', name: 'HIIT', icon: '⚡' },
+    { id: 'strength', name: 'Fuerza', icon: '💪' }
   ];
 
-  const courses: Course[] = [
+  const defaultCourses: Course[] = [
     {
       id: '1',
-      title: 'HIIT para Principiantes - Bajar de Peso',
-      instructor: 'Roger Barreto',
+      title: 'Transformación Total 90 Días',
+      instructor: 'RogerBox',
       category: 'lose_weight',
-      duration: '4 semanas',
-      level: 'Principiante',
+      duration: '90 días',
+      level: 'Intermedio',
       rating: 4.9,
-      students: 1250,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Rutina HIIT diseñada específicamente para quemar grasa y bajar de peso de forma efectiva.',
-      lessons: 12,
-      isRecommended: userProfile.goals.includes('lose_weight')
+      students: 2847,
+      price: 89,
+      thumbnail: '/images/curso-transformacion.jpg',
+      description: 'Programa completo de transformación física en 90 días con desbloqueo diario de clases.',
+      lessons: 90,
+      isRecommended: userProfile?.goals?.includes('lose_weight') || false
     },
     {
       id: '2',
-      title: 'Tonificación Total - 30 Días',
-      instructor: 'Roger Barreto',
-      category: 'tone',
-      duration: '6 semanas',
-      level: 'Intermedio',
-      rating: 4.8,
-      students: 980,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Programa completo de tonificación que define y fortalece todos los grupos musculares.',
-      lessons: 18,
-      isRecommended: userProfile.goals.includes('tone')
+      title: 'HIIT Quema Grasa',
+      instructor: 'RogerBox',
+      category: 'hiit',
+      duration: '21 días',
+      level: 'Avanzado',
+      rating: 4.7,
+      students: 1456,
+      price: 69,
+      thumbnail: '/images/curso-hiit.jpg',
+      description: 'Entrenamiento de alta intensidad para quemar grasa y tonificar músculos.',
+      lessons: 21,
+      isRecommended: userProfile?.goals?.includes('hiit') || false
     },
     {
       id: '3',
-      title: 'Plan de Pesas - 120kg',
-      instructor: 'Roger Barreto',
-      category: 'gain_muscle',
-      duration: '8 semanas',
-      level: 'Avanzado',
-      rating: 4.9,
-      students: 750,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Programa intensivo de musculación para ganar masa muscular y fuerza.',
-      lessons: 24,
-      isRecommended: userProfile.goals.includes('gain_muscle')
+      title: 'Fuerza y Músculo',
+      instructor: 'RogerBox',
+      category: 'strength',
+      duration: '60 días',
+      level: 'Intermedio',
+      rating: 4.8,
+      students: 1923,
+      price: 79,
+      thumbnail: '/images/curso-fuerza.jpg',
+      description: 'Desarrolla fuerza muscular con ejercicios progresivos y técnicas avanzadas.',
+      lessons: 60,
+      isRecommended: userProfile?.goals?.includes('strength') || false
     },
     {
       id: '4',
-      title: 'Resistencia Cardio - Maratón',
-      instructor: 'Roger Barreto',
+      title: 'Cardio Intenso',
+      instructor: 'RogerBox',
       category: 'endurance',
-      duration: '10 semanas',
-      level: 'Intermedio',
-      rating: 4.7,
-      students: 650,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Entrenamiento de resistencia para mejorar tu capacidad cardiovascular.',
-      lessons: 20,
-      isRecommended: userProfile.goals.includes('endurance')
+      duration: '30 días',
+      level: 'Avanzado',
+      rating: 4.9,
+      students: 2156,
+      price: 59,
+      thumbnail: '/images/curso-cardio.jpg',
+      description: 'Entrenamientos cardiovasculares de alta intensidad para llevar tu resistencia al límite.',
+      lessons: 30,
+      isRecommended: userProfile?.goals?.includes('endurance') || false
     },
     {
       id: '5',
-      title: 'Flexibilidad y Movilidad',
-      instructor: 'Roger Barreto',
-      category: 'flexibility',
-      duration: '4 semanas',
-      level: 'Principiante',
+      title: 'Tonificación Total',
+      instructor: 'RogerBox',
+      category: 'tone',
+      duration: '45 días',
+      level: 'Intermedio',
       rating: 4.6,
-      students: 420,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Mejora tu flexibilidad y movilidad con ejercicios específicos.',
-      lessons: 14,
-      isRecommended: userProfile.goals.includes('flexibility')
+      students: 1543,
+      price: 69,
+      thumbnail: '/images/curso-tonificacion.jpg',
+      description: 'Define y tonifica tu cuerpo con ejercicios específicos para cada grupo muscular.',
+      lessons: 45,
+      isRecommended: userProfile?.goals?.includes('tone') || false
     },
     {
       id: '6',
-      title: 'Fuerza Funcional',
-      instructor: 'Roger Barreto',
-      category: 'strength',
-      duration: '6 semanas',
+      title: 'Ganancia Muscular',
+      instructor: 'RogerBox',
+      category: 'gain_muscle',
+      duration: '75 días',
       level: 'Avanzado',
       rating: 4.8,
-      students: 580,
-      price: 7900,
-      thumbnail: '/api/placeholder/300/200',
-      description: 'Desarrolla fuerza funcional para actividades diarias.',
-      lessons: 16,
-      isRecommended: userProfile.goals.includes('strength')
+      students: 987,
+      price: 99,
+      thumbnail: '/images/curso-musculo.jpg',
+      description: 'Maximiza tu crecimiento muscular con ejercicios de alta intensidad.',
+      lessons: 75,
+      isRecommended: userProfile?.goals?.includes('gain_muscle') || false
     }
   ];
 
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = defaultCourses.filter(course => {
     const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const recommendedCourses = courses.filter(course => course.isRecommended);
+  const recommendedCourses = defaultCourses.filter(course => course.isRecommended);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Background Overlay */}
-      <div className="fixed inset-0 bg-gradient-to-r from-[#164151]/80 via-[#29839c]/70 to-[#164151]/60 backdrop-blur-sm z-0"></div>
-      
-      {/* Content */}
+    <div className="min-h-screen bg-gradient-to-br from-[#164151]/80 via-[#29839c]/70 to-[#29839c]/60 text-white">
       <div className="relative z-10">
         {/* Header */}
         <header className="bg-transparent border-b border-white/20">
@@ -164,15 +202,51 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
                 </h1>
               </div>
               
-              {/* User Profile */}
-              <div className="flex items-center space-x-4">
-                <div className="text-right text-white">
-                  <div className="font-semibold">Bienvenido de vuelta</div>
-                  <div className="text-sm text-white/60">Listo para entrenar</div>
-                </div>
-                <div className="w-10 h-10 bg-[#85ea10] rounded-full flex items-center justify-center">
-                  <span className="text-black font-bold">U</span>
-                </div>
+              {/* User Profile Menu */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 bg-[#85ea10] rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-black" />
+                  </div>
+                  <div className="text-left text-white">
+                    <div className="font-semibold text-sm">{userProfile?.name || 'Usuario'}</div>
+                    <div className="text-xs text-white/60">{userProfile?.email || 'email@ejemplo.com'}</div>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="font-semibold text-gray-900">{userProfile?.name || 'Usuario'}</div>
+                      <div className="text-sm text-gray-600">{userProfile?.email || 'email@ejemplo.com'}</div>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          router.push('/profile');
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Mi Perfil</span>
+                      </button>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Cerrar sesión</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -183,305 +257,546 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
           {/* Welcome Section */}
           <div className="mb-8">
             <h2 className="text-3xl font-black text-white mb-2">
-              Tus Cursos Recomendados
+              ¡Hola, {userProfile?.name || 'Usuario'}! 👋
             </h2>
             <p className="text-white/80">
-              Basado en tus objetivos: {userProfile.goals.map(goal => 
-                categories.find(cat => cat.id === goal)?.name
-              ).join(', ')}
+              {isNewUser 
+                ? '¡Bienvenido a RogerBox! Comienza tu transformación'
+                : 'Listo para tu próxima sesión de entrenamiento'
+              }
             </p>
+            
           </div>
 
-          {/* Search and Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Buscar cursos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10]"
-              />
-            </div>
-            <button className="px-6 py-3 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold rounded-xl transition-colors flex items-center space-x-2">
-              <Filter className="w-5 h-5" />
-              <span>Filtrar</span>
-            </button>
-          </div>
+          {/* Complement Section - Prioridad para usuarios nuevos */}
+          {/* Complement section removed - focusing on courses only */}
 
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-full border-2 transition-all duration-300 ${
-                  selectedCategory === category.id
-                    ? 'border-[#85ea10] bg-[#85ea10]/10 text-[#85ea10]'
-                    : 'border-white/30 text-white hover:border-white/50'
-                }`}
-              >
-                <span className="mr-2">{category.icon}</span>
-                {category.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Recommended Courses */}
-          {recommendedCourses.length > 0 && selectedCategory === 'all' && (
+          {/* My Courses Section - Solo si el usuario tiene cursos inscritos */}
+          {hasEnrolledCourses && (
             <div className="mb-12">
-              <div className="flex items-center space-x-2 mb-6">
-                <Trophy className="w-6 h-6 text-[#85ea10]" />
-                <h3 className="text-2xl font-bold text-white">Recomendados para ti</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                  <Trophy className="w-6 h-6" />
+                  <span>Mis Cursos</span>
+                </h3>
+                <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors">
+                  Ver todos
+                </button>
               </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendedCourses.map((course) => (
-                  <CourseCard key={course.id} course={course} />
-                ))}
+                {/* Sample enrolled course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                      En Progreso
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.8</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    HIIT para Principiantes
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Rutinas de alta intensidad perfectas para empezar
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>30 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>1,234 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>3/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-[#85ea10] h-2 rounded-full" style={{ width: '37.5%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Play className="w-5 h-5" />
+                    <span>Continuar</span>
+                  </button>
+                </div>
+                
+                {/* Sample completed course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      Completado
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.9</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    Cardio Intenso
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Entrenamientos cardiovasculares de alta intensidad
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>45 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>2,156 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>8/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Trophy className="w-5 h-5" />
+                    <span>Ver Certificado</span>
+                  </button>
+                </div>
+                
+                {/* Empty state for more courses */}
+                <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trophy className="w-8 h-8 text-white/40" />
+                    </div>
+                    <p className="text-white/60 mb-4">Explora más cursos</p>
+                    <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors font-medium">
+                      Ver catálogo
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
+          
 
-          {/* All Courses */}
-          <div>
+
+          {/* Complement Section - Prioridad para usuarios nuevos */}
+          {/* Complement section removed - focusing on courses only */}
+
+          {/* My Courses Section - Solo si el usuario tiene cursos inscritos */}
+          {hasEnrolledCourses && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                  <Trophy className="w-6 h-6" />
+                  <span>Mis Cursos</span>
+                </h3>
+                <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors">
+                  Ver todos
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Sample enrolled course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                      En Progreso
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.8</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    HIIT para Principiantes
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Rutinas de alta intensidad perfectas para empezar
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>30 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>1,234 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>3/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-[#85ea10] h-2 rounded-full" style={{ width: '37.5%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Play className="w-5 h-5" />
+                    <span>Continuar</span>
+                  </button>
+                </div>
+                
+                {/* Sample completed course */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      Completado
+                    </span>
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">4.9</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    Cardio Intenso
+                  </h4>
+                  <p className="text-white/60 mb-4">
+                    Entrenamientos cardiovasculares de alta intensidad
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>45 min</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>2,156 estudiantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-white/60 mb-1">
+                      <span>Progreso</span>
+                      <span>8/8 clases</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                    <Trophy className="w-5 h-5" />
+                    <span>Ver Certificado</span>
+                  </button>
+                </div>
+                
+                {/* Empty state for more courses */}
+                <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trophy className="w-8 h-8 text-white/40" />
+                    </div>
+                    <p className="text-white/60 mb-4">Explora más cursos</p>
+                    <button className="text-[#85ea10] hover:text-[#7dd30f] transition-colors font-medium">
+                      Ver catálogo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+
+
+          {/* Recommended Courses Section */}
+          <div id="recommended-courses" className="mb-8">
             <h3 className="text-2xl font-bold text-white mb-6">
-              {selectedCategory === 'all' ? 'Todos los Cursos' : 
-               categories.find(cat => cat.id === selectedCategory)?.name}
+              {isNewUser ? 'Cursos Destacados' : 'Cursos Recomendados para Ti'}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+            <p className="text-white/80 mb-6">
+              {isNewUser 
+                ? 'Descubre nuestros cursos más populares y comienza tu transformación'
+                : `Basado en tus objetivos: ${userProfile?.goals?.map(goal => 
+                    categories.find(cat => cat.id === goal)?.name
+                  ).join(', ') || 'Todos los cursos'}`
+              }
+            </p>
+
+            {/* Search and Filter */}
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar cursos..."
+                  className="w-full bg-white/10 border border-white/20 rounded-lg py-3 pl-10 pr-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5" />
+                <select
+                  className="w-full md:w-auto bg-white/10 border border-white/20 rounded-lg py-3 pl-10 pr-4 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#85ea10]"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id} className="bg-gray-800 text-white">
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Categories */}
+            <div className="flex flex-wrap gap-3 mb-8">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                    selectedCategory === category.id
+                      ? 'bg-[#85ea10] text-black'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <span className="mr-2">{category.icon}</span>
+                  {category.name}
+                </button>
               ))}
+            </div>
+
+            {/* Recommended Courses */}
+            {recommendedCourses.length > 0 && selectedCategory === 'all' && (
+              <div className="mb-8">
+                <h4 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Recomendados para Ti</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {recommendedCourses.map((course) => (
+                    <div
+                      key={course.id}
+                      className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group cursor-pointer"
+                      onClick={() => router.push(`/course/${course.id}`)}
+                    >
+                      {/* Course card content */}
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                            Recomendado
+                          </span>
+                          <div className="flex items-center space-x-1 text-yellow-400">
+                            <Star className="w-4 h-4 fill-current" />
+                            <span className="text-sm font-medium">{course.rating}</span>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-xl font-bold text-white mb-2">
+                          {course.title}
+                        </h4>
+                        <p className="text-white/60 mb-4">
+                          {course.description}
+                        </p>
+                        
+                        <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{course.duration}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4" />
+                            <span>{course.students.toLocaleString()} estudiantes</span>
+                          </div>
+                        </div>
+                        
+                        <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                          <Play className="w-5 h-5" />
+                          <span>Ver Curso</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Courses */}
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-white mb-6">
+                {selectedCategory === 'all' ? 'Todos los Cursos' : 
+                 categories.find(cat => cat.id === selectedCategory)?.name}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCourses.map(course => (
+                  <div
+                    key={course.id}
+                    className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 cursor-pointer"
+                    onClick={() => router.push(`/course/${course.id}`)}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {course.category.replace('_', ' ')}
+                      </span>
+                      <div className="flex items-center space-x-1 text-yellow-400">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="text-sm font-medium">{course.rating}</span>
+                      </div>
+                    </div>
+                    
+                    <h4 className="text-xl font-bold text-white mb-2">
+                      {course.title}
+                    </h4>
+                    <p className="text-white/60 mb-4">
+                      {course.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{course.duration}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Users className="w-4 h-4" />
+                        <span>{course.students.toLocaleString()} estudiantes</span>
+                      </div>
+                    </div>
+                    
+                    <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2">
+                      <Play className="w-5 h-5" />
+                      <span>Ver Curso</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Nutritional Plans Section */}
-          <div className="mt-16">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
-                <ChefHat className="w-8 h-8 text-[#85ea10]" />
-                <h2 className="text-3xl font-black text-white">Planes Nutricionales</h2>
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                <Utensils className="w-6 h-6" />
+                <span>Planes Nutricionales</span>
+              </h3>
               <button
                 onClick={() => router.push('/nutritional-plans')}
-                className="flex items-center text-[#85ea10] hover:text-white transition-colors"
+                className="text-[#85ea10] hover:text-[#7dd30f] transition-colors"
               >
                 Ver todos
-                <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             </div>
-            <p className="text-white/80 mb-8 max-w-2xl">
-              Complementa tu entrenamiento con planes nutricionales diseñados por Roger Barreto
-            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Sample Nutritional Plans */}
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="relative h-48 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
-                  <Utensils className="w-16 h-16 text-white/80" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-[#85ea10]/20 text-[#85ea10] rounded-full text-sm font-medium">
-                      Bajar de Peso
-                    </span>
-                  </div>
+              {/* Sample Nutritional Plan Card */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    Pérdida de Peso
+                  </span>
+                  <span className="text-lg font-bold text-white">$29.99</span>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3">Plan Definitivo para Bajar de Peso</h3>
-                  <p className="text-white/70 mb-4">Plan nutricional de 30 días diseñado para pérdida de peso saludable</p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-black text-[#85ea10]">$89,000</div>
-                    <button className="bg-[#85ea10] hover:bg-[#7dd30f] text-black px-4 py-2 rounded-lg font-bold transition-colors">
-                      Ver Plan
-                    </button>
-                  </div>
-                </div>
+                <h4 className="text-xl font-bold text-white mb-2">
+                  Plan Keto Semanal
+                </h4>
+                <p className="text-white/60 mb-4">
+                  Recetas bajas en carbohidratos para una semana completa.
+                </p>
+                <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300">
+                  Comprar Plan
+                </button>
               </div>
-
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="relative h-48 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
-                  <ChefHat className="w-16 h-16 text-white/80" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-[#85ea10]/20 text-[#85ea10] rounded-full text-sm font-medium">
-                      Ganar Músculo
-                    </span>
-                  </div>
+              {/* Another Sample Plan */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold">
+                    Ganancia Muscular
+                  </span>
+                  <span className="text-lg font-bold text-white">$39.99</span>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3">Plan de Ganancia Muscular</h3>
-                  <p className="text-white/70 mb-4">Plan nutricional de 21 días para ganar masa muscular</p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-black text-[#85ea10]">$79,000</div>
-                    <button className="bg-[#85ea10] hover:bg-[#7dd30f] text-black px-4 py-2 rounded-lg font-bold transition-colors">
-                      Ver Plan
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="relative h-48 bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center">
-                  <Utensils className="w-16 h-16 text-white/80" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-[#85ea10]/20 text-[#85ea10] rounded-full text-sm font-medium">
-                      Detox
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3">Plan Detox de 7 Días</h3>
-                  <p className="text-white/70 mb-4">Plan de desintoxicación para limpiar el organismo</p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-black text-[#85ea10]">$49,000</div>
-                    <button className="bg-[#85ea10] hover:bg-[#7dd30f] text-black px-4 py-2 rounded-lg font-bold transition-colors">
-                      Ver Plan
-                    </button>
-                  </div>
-                </div>
+                <h4 className="text-xl font-bold text-white mb-2">
+                  Dieta Hiperproteica
+                </h4>
+                <p className="text-white/60 mb-4">
+                  Maximiza tu crecimiento muscular con este plan de 4 semanas.
+                </p>
+                <button className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300">
+                  Comprar Plan
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Nutritional Blogs Section */}
-          <div className="mt-16">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
-                <BookOpen className="w-8 h-8 text-[#85ea10]" />
-                <h2 className="text-3xl font-black text-white">Blog Nutricional</h2>
-              </div>
+          {/* Nutritional Blog Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white flex items-center space-x-2">
+                <BookOpen className="w-6 h-6" />
+                <span>Blog Nutricional</span>
+              </h3>
               <button
                 onClick={() => router.push('/nutritional-blogs')}
-                className="flex items-center text-[#85ea10] hover:text-white transition-colors"
+                className="text-[#85ea10] hover:text-[#7dd30f] transition-colors"
               >
                 Ver todos
-                <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             </div>
-            <p className="text-white/80 mb-8 max-w-2xl">
-              Consejos, tips y guías gratuitas para optimizar tu alimentación
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Sample Blog Posts */}
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="h-32 bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-white/80" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Sample Blog Post Card */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="bg-gray-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    GRATIS
+                  </span>
+                  <span className="text-sm text-white/60">5 min lectura</span>
                 </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">10 Alimentos que Aceleran tu Metabolismo</h3>
-                  <p className="text-white/70 text-sm mb-3 line-clamp-2">Descubre los alimentos que te ayudan a quemar más calorías</p>
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>5 min lectura</span>
-                    <span className="text-[#85ea10] font-bold">GRATIS</span>
-                  </div>
-                </div>
+                <h4 className="text-xl font-bold text-white mb-2">
+                  Los 5 Mejores Alimentos para Quemar Grasa
+                </h4>
+                <p className="text-white/60 mb-4">
+                  Descubre qué alimentos te ayudarán a acelerar tu metabolismo.
+                </p>
+                <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300">
+                  Leer Artículo
+                </button>
               </div>
-
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="h-32 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-white/80" />
+              {/* Another Sample Blog Post */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="bg-gray-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    GRATIS
+                  </span>
+                  <span className="text-sm text-white/60">8 min lectura</span>
                 </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">Cómo Hidratarte Correctamente</h3>
-                  <p className="text-white/70 text-sm mb-3 line-clamp-2">La hidratación es clave para un rendimiento óptimo</p>
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>4 min lectura</span>
-                    <span className="text-[#85ea10] font-bold">GRATIS</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="h-32 bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-white/80" />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">Proteínas: Todo lo que Necesitas Saber</h3>
-                  <p className="text-white/70 text-sm mb-3 line-clamp-2">Guía completa sobre proteínas para maximizar resultados</p>
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>7 min lectura</span>
-                    <span className="text-[#85ea10] font-bold">GRATIS</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-                <div className="h-32 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-white/80" />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">Meal Prep: Prepárate para el Éxito</h3>
-                  <p className="text-white/70 text-sm mb-3 line-clamp-2">Aprende a preparar tus comidas de la semana</p>
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>6 min lectura</span>
-                    <span className="text-[#85ea10] font-bold">GRATIS</span>
-                  </div>
-                </div>
+                <h4 className="text-xl font-bold text-white mb-2">
+                  Guía Completa de Suplementos
+                </h4>
+                <p className="text-white/60 mb-4">
+                  Todo lo que necesitas saber sobre proteínas, creatina y más.
+                </p>
+                <button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300">
+                  Leer Artículo
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function CourseCard({ course }: { course: Course }) {
-  return (
-    <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group">
-      {/* Thumbnail */}
-      <div className="relative">
-        <div className="w-full h-48 bg-gradient-to-br from-[#164151] to-[#29839c] flex items-center justify-center">
-          <Play className="w-16 h-16 text-white/60" />
-        </div>
-        {course.isRecommended && (
-          <div className="absolute top-4 left-4 bg-[#85ea10] text-black px-3 py-1 rounded-full font-bold text-sm flex items-center space-x-1">
-            <Target className="w-4 h-4" />
-            <span>Recomendado</span>
-          </div>
-        )}
-        <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full font-bold text-sm">
-          ${course.price.toLocaleString()}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[#85ea10] text-sm font-semibold">{course.level}</span>
-          <div className="flex items-center space-x-1">
-            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="text-white text-sm">{course.rating}</span>
-          </div>
-        </div>
-
-        <h4 className="text-xl font-bold text-white mb-2 group-hover:text-[#85ea10] transition-colors">
-          {course.title}
-        </h4>
-
-        <p className="text-white/70 text-sm mb-4 line-clamp-2">
-          {course.description}
-        </p>
-
-        <div className="flex items-center justify-between text-white/60 text-sm mb-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Clock className="w-4 h-4" />
-              <span>{course.duration}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Users className="w-4 h-4" />
-              <span>{course.students.toLocaleString()}</span>
-            </div>
-          </div>
-          <span>{course.lessons} clases</span>
-        </div>
-
-        <button 
-          onClick={() => window.location.href = `/course/${course.id}`}
-          className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 group"
-        >
-          <span>Ver Curso</span>
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </button>
       </div>
     </div>
   );
