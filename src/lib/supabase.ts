@@ -1,13 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost-placeholder';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'anon-key-placeholder';
+// Use non-public service role key name; never expose this in NEXT_PUBLIC vars
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-key-placeholder';
 
 // Verificar que las variables estén cargadas
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  console.error('❌ Missing Supabase environment variables!');
-  console.error('Please check your .env.local file');
+if (
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY
+) {
+  console.warn('⚠️ Missing Supabase environment variables. Using placeholders for build.');
+  console.warn('Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
