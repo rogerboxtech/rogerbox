@@ -1,5 +1,5 @@
-import LoadingScreen from '@/components/LoadingScreen';
+import SimpleLoading from '@/components/SimpleLoading';
 
 export default function LoadingPage() {
-  return <LoadingScreen message="Cargando RogerBox..." showProgress={true} />;
+  return <SimpleLoading message="Cargando RogerBox..." showProgress={true} />;
 }
