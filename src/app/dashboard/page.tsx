@@ -733,6 +733,7 @@ export default function DashboardPage() {
         )}
 
         {/* All Courses */}
+        {filteredCourses.length > 0 && (
         <div>
           <div className="mb-6">
             <h2 className="text-xl font-bold dashboard-title text-gray-900 dark:text-white">
@@ -747,18 +748,6 @@ export default function DashboardPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Estamos preparando los mejores cursos para ti
-              </p>
-            </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 dark:bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-12 h-12 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No hay cursos disponibles
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Pronto tendremos nuevos cursos para ti
               </p>
             </div>
           ) : (
@@ -902,6 +891,7 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        )}
       </main>
 
       {/* Footer */}
