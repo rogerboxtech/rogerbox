@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     console.log('🌱 Iniciando seed de complementos...');
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     
     for (const complement of sampleComplements) {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('complements')
           .insert({
             id: uuidv4(),

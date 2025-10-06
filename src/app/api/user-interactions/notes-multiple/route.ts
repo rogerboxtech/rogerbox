@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener la interacción existente
-    const { data: existingInteraction, error: fetchError } = await supabase
+    const { data: existingInteraction } = await supabase
       .from('user_complement_interactions')
       .select('notes_array')
       .eq('user_id', session.user.id)
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const updatedNotes = [newNote, ...currentNotes];
 
     // Insertar o actualizar la interacción
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('user_complement_interactions')
       .upsert({
         user_id: session.user.id,

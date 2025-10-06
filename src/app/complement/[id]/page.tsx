@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Heart, Share2, Clock, Star, Play, Eye, CheckCircle, Calendar, Target, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Heart, Clock, Star, Play, Eye, CheckCircle, Calendar, Target, TrendingUp } from 'lucide-react';
 import SimpleLoading from '@/components/SimpleLoading';
 
 interface Complement {

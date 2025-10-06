@@ -9,14 +9,12 @@ import {
   Clock, 
   Users, 
   Star, 
-  Target, 
   Flame, 
   BookOpen,
   Share2,
   Heart,
   ShoppingCart,
   Lock,
-  CheckCircle
 } from 'lucide-react';
 import RogerAlert from '@/components/RogerAlert';
 import { supabase } from '@/lib/supabase';
@@ -313,19 +311,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  const levelColors = {
-    'beginner': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    'intermediate': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    'advanced': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    'expert': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-  };
-
-  const levelNames = {
-    'beginner': 'Principiante',
-    'intermediate': 'Intermedio',
-    'advanced': 'Avanzado',
-    'expert': 'Experto'
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -559,7 +544,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {lessons.map((lesson, index) => (
+                  {lessons.map((lesson) => (
         <div
           key={lesson.id}
           className={`relative overflow-hidden rounded-lg border transition-all duration-300 ${
