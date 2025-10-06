@@ -208,14 +208,18 @@ export default function DashboardPage() {
   ];
   */
 
+  // Cursos recomendados (por rating alto) y evitar duplicarlos en "Todos los Cursos"
+  const recommendedCourses = realCourses.filter(course => (course.rating ?? 0) >= 4.5).slice(0, 3);
+  const recommendedIds = new Set(recommendedCourses.map(c => c.id));
+
   const filteredCourses = realCourses.filter(course => {
     const matchesCategory = selectedCategory === 'all' || course.category_name === selectedCategory;
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.short_description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    // Excluir los que ya aparecen como recomendados para evitar duplicados visuales
+    const notRecommended = !recommendedIds.has(course.id);
+    return matchesCategory && matchesSearch && notRecommended;
   });
-
-  const recommendedCourses = realCourses.filter(course => (course.rating ?? 0) >= 4.5);
 
   // Función para calcular IMC y dar recomendaciones
   const calculateBMI = (weight: number, height: number) => {
