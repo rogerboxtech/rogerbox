@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         console.error(`❌ Error inesperado con "${complement.title}":`, error);
-        results.push({ title: complement.title, status: 'error', error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        results.push({ title: complement.title, status: 'error', error: message });
       }
     }
 

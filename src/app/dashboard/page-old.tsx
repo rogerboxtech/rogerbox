@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Play, Clock, Users, Star, Filter, Search, User, LogOut, ChevronDown, ShoppingCart, Heart, BookOpen, Target, Zap, Utensils, ChefHat, Award, TrendingUp } from 'lucide-react';
 import Footer from '@/components/Footer';
+import SimpleLoading from '@/components/SimpleLoading';
+import CourseDashboard from '@/components/CourseDashboard';
 import { supabase } from '@/lib/supabase';
 
 interface UserProfile {

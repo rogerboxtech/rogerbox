@@ -54,16 +54,18 @@ export default function ComplementDetail() {
 
   // Función separada para cargar interacciones
   const loadUserInteractions = async (complementId: string) => {
-    if (!session?.user?.id) {
+    if (!(session?.user as any)?.id) {
       console.log('⚠️ Usuario no autenticado, no se cargan interacciones');
       return;
     }
 
     try {
-      console.log('🔍 Cargando interacciones para usuario:', session.user.id);
+      const userId = (session as any)?.user?.id as string | undefined;
+      console.log('🔍 Cargando interacciones para usuario:', userId);
+      if (!userId) return;
       
       // Usar la API de debug que sabemos que funciona
-      const interactionsResponse = await fetch(`/api/debug-interactions?complement_id=${complementId}&user_id=${session.user.id}`);
+      const interactionsResponse = await fetch(`/api/debug-interactions?complement_id=${complementId}&user_id=${userId}`);
       console.log('📡 Respuesta de interacciones:', interactionsResponse.status);
       
       if (interactionsResponse.ok) {
@@ -140,7 +142,7 @@ export default function ComplementDetail() {
         setLoading(false);
         
         // Cargar interacciones inmediatamente después de cargar el complemento
-        if (session?.user?.id && status === 'authenticated') {
+        if ((session?.user as any)?.id && status === 'authenticated') {
           console.log('🔄 Cargando interacciones inmediatamente después del complemento...');
           setTimeout(() => {
             loadUserInteractions(complementId);
@@ -153,27 +155,27 @@ export default function ComplementDetail() {
     };
 
     fetchComplement();
-  }, [params.id, session?.user?.id, status]);
+  }, [params.id, (session as any)?.user?.id, status]);
 
   // useEffect para cargar interacciones cuando esté todo listo
   useEffect(() => {
-    console.log('🔍 useEffect interacciones - complement:', !!complement, 'session:', !!session?.user?.id, 'status:', status);
+    console.log('🔍 useEffect interacciones - complement:', !!complement, 'session:', !!(session as any)?.user?.id, 'status:', status);
     
-    if (complement && session?.user?.id && status === 'authenticated') {
+    if (complement && (session as any)?.user?.id && status === 'authenticated') {
       console.log('🔄 Cargando interacciones del usuario...');
       loadUserInteractions(complement.id);
     } else {
       console.log('⚠️ No se cumplen las condiciones para cargar interacciones:', {
         hasComplement: !!complement,
-        hasUserId: !!session?.user?.id,
+        hasUserId: !!(session as any)?.user?.id,
         status: status
       });
     }
-  }, [complement, session?.user?.id, status]);
+  }, [complement, (session as any)?.user?.id, status]);
 
   // useEffect adicional como respaldo - se ejecuta después de que todo esté cargado
   useEffect(() => {
-    if (complement && status === 'authenticated' && session?.user?.id) {
+    if (complement && status === 'authenticated' && (session as any)?.user?.id) {
       console.log('⏰ Respaldo: Cargando interacciones después de 1 segundo...');
       const timer = setTimeout(() => {
         console.log('🔄 Respaldo: Ejecutando carga de interacciones...');
