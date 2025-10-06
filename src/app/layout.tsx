@@ -27,6 +27,28 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
+  openGraph: {
+    title: 'RogerBox - Transforma tu cuerpo cambiando tu mente',
+    description: 'Entrenamientos HIIT, planes nutricionales y mentoría personalizada. Únete a RogerBox.',
+    url: 'https://rogerbox.vercel.app',
+    siteName: 'RogerBox',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'RogerBox',
+      },
+    ],
+    locale: 'es_ES',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RogerBox - Transforma tu cuerpo cambiando tu mente',
+    description: 'Entrenamientos HIIT, planes nutricionales y mentoría personalizada. Únete a RogerBox.',
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({
