@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, Mail, MapPin, Clock, User, Building2, Heart, Zap, Target, MessageCircle, Calendar, Star, CheckCircle, ArrowRight } from 'lucide-react';
+import { Phone, Mail, MapPin, User, Building2, Heart, Zap, Target, MessageCircle, Calendar, Star, CheckCircle } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 export default function ContactPage() {
   const router = useRouter();
-  const [selectedService, setSelectedService] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -251,7 +250,6 @@ export default function ContactPage() {
                       ))}
                     </ul>
                     <button 
-                      onClick={() => setSelectedService(service.id)}
                       className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-xl transition-all duration-300 hover:scale-105"
                     >
                       Solicitar Información

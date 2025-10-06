@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MapPin, Calendar, Award, Users, Target, Heart, Zap } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 export default function AboutPage() {

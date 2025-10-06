@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { complement_id, is_completed } = body;
+    const { complement_id } = body;
 
     if (!complement_id) {
       return NextResponse.json({ error: 'Complement ID is required' }, { status: 400 });
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener la interacción actual
-    const { data: currentInteraction, error: fetchError } = await supabase
+    const { data: currentInteraction } = await supabase
       .from('user_complement_interactions')
       .select('times_completed, last_completed_at')
       .eq('user_id', session.user.id)

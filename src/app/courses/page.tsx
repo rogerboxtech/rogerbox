@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Clock, Users, Star, Filter, Search, ArrowRight, User, BookOpen, Award, TrendingUp, Zap } from 'lucide-react';
+import { Play, Users, Star, Filter, Search, ArrowRight, User, BookOpen, TrendingUp, Zap } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { useSimpleCourses } from '@/hooks/useSimpleCourses';
 
