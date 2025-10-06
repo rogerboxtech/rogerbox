@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (status === 'authenticated' && session?.user?.id !== 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e') {
+    if (status === 'authenticated' && (session?.user as any)?.id !== 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e') {
       router.push('/dashboard');
       return;
     }
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
     return null;
   }
 
-  if (session?.user?.id !== 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e') {
+  if ((session?.user as any)?.id !== 'cdeaf7e0-c7fa-40a9-b6e9-288c9a677b5e') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

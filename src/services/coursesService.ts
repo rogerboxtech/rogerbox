@@ -2,6 +2,54 @@
 
 import { supabase } from '@/lib/supabase';
 
+interface DatabaseCourse {
+  id: string;
+  title: string;
+  description: string;
+  short_description: string;
+  thumbnail: string;
+  preview_image: string;
+  price: number;
+  original_price?: number;
+  discount_percentage?: number;
+  category_id: string;
+  instructor: string;
+  rating: number;
+  students_count: number;
+  lessons_count: number;
+  duration: number;
+  level: string;
+  language: string;
+  created_at: string;
+  updated_at: string;
+  is_published: boolean;
+  is_featured: boolean;
+  tags: string[];
+  requirements: string[];
+  learning_objectives: string[];
+  intro_video_url?: string;
+  certificate_included: boolean;
+  lifetime_access: boolean;
+  money_back_guarantee: boolean;
+  support_included: boolean;
+  mobile_optimized: boolean;
+  downloadable_resources: boolean;
+  community_access: boolean;
+  instructor_rating: number;
+  instructor_students: number;
+  instructor_courses: number;
+  instructor_reviews: number;
+  instructor_biography: string;
+  instructor_avatar: string;
+  instructor_social_links: Record<string, string>;
+  course_goals: string[];
+  course_notes: string;
+  course_progress_tracking: boolean;
+  course_iva_included: boolean;
+  course_iva_percentage: number;
+  course_iva_amount: number;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -135,7 +183,7 @@ class CoursesService {
   /**
    * Transforma los datos de la base de datos al formato esperado
    */
-  private transformCourses(courses: any[], viewCounts: Record<string, number>, categoryMap: { [key: string]: string }): Course[] {
+  private transformCourses(courses: DatabaseCourse[], viewCounts: Record<string, number>, categoryMap: { [key: string]: string }): Course[] {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
     return courses.map(course => {

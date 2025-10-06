@@ -313,7 +313,7 @@ class AppStore {
       if (stored) {
         const parsed = JSON.parse(stored);
         // Convert date strings back to Date objects
-        parsed.users = parsed.users.map((user: any) => ({
+        parsed.users = parsed.users.map((user: User) => ({
           ...user,
           createdAt: new Date(user.createdAt),
           membership: user.membership ? {
@@ -321,26 +321,26 @@ class AppStore {
             startDate: new Date(user.membership.startDate),
             endDate: user.membership.endDate ? new Date(user.membership.endDate) : undefined,
           } : undefined,
-          reservations: user.reservations ? user.reservations.map((r: any) => ({
+          reservations: user.reservations ? user.reservations.map((r: Reservation) => ({
             ...r,
             classDate: new Date(r.classDate),
             createdAt: new Date(r.createdAt),
           })) : [],
-          attendances: user.attendances ? user.attendances.map((a: any) => ({
+          attendances: user.attendances ? user.attendances.map((a: Attendance) => ({
             ...a,
             classDate: new Date(a.classDate),
             confirmedAt: new Date(a.confirmedAt),
           })) : [],
-          videoPurchases: user.videoPurchases ? user.videoPurchases.map((vp: any) => ({
+          videoPurchases: user.videoPurchases ? user.videoPurchases.map((vp: VideoPurchase) => ({
             ...vp,
             purchasedAt: new Date(vp.purchasedAt),
           })) : [],
-          digitalRoutinePurchases: user.digitalRoutinePurchases ? user.digitalRoutinePurchases.map((drp: any) => ({
+          digitalRoutinePurchases: user.digitalRoutinePurchases ? user.digitalRoutinePurchases.map((drp: DigitalRoutinePurchase) => ({
             ...drp,
             purchasedAt: new Date(drp.purchasedAt),
           })) : [],
         }));
-        parsed.videos = parsed.videos.map((video: any) => ({
+        parsed.videos = parsed.videos.map((video: Video) => ({
           ...video,
           createdAt: new Date(video.createdAt),
         }));
@@ -632,7 +632,7 @@ class AppStore {
     return newVideo;
   }
 
-  getAdminStats(): any {
+  getAdminStats(): AdminStats {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
@@ -660,14 +660,10 @@ class AppStore {
     };
   }
 
-  getClassAttendances(classDate: Date): any[] {
-    const classAttendances: any[] = [];
+  getClassAttendances(classDate: Date): ClassAttendance[] {
+    const classAttendances: ClassAttendance[] = [];
     
     this.state.classes.forEach(classData => {
-      const reservations = this.state.users
-        .flatMap(u => u.reservations)
-        .filter(r => r.classId === classData.id && r.status === 'active' && r.classDate.toDateString() === classDate.toDateString());
-      
       const attendances = this.state.users
         .flatMap(u => u.attendances)
         .filter(a => a.classId === classData.id && a.classDate.toDateString() === classDate.toDateString());
