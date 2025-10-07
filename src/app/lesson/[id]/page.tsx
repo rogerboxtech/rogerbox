@@ -244,36 +244,37 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       // Obtener estadísticas completas del curso
       const { data: completionsData, error: completionsError } = await supabase
         .from('user_lesson_completions')
-        .select(`
-          calories_burned,
-          lesson_completions!inner(
-            course_lessons!inner(
-              duration_minutes,
-              course_id
-            )
-          )
-        `)
-        .eq('user_id', (session as any).user.id)
-        .eq('lesson_completions.course_lessons.course_id', lesson?.course_id || '1');
+        .select('calories_burned, lesson_id')
+        .eq('user_id', (session as any).user.id);
 
       if (completionsError) {
         console.error('Error fetching course stats:', completionsError);
         return;
       }
 
-      // Calcular estadísticas
+      // Obtener información de las lecciones completadas
       let totalMinutes = 0;
       let totalCalories = 0;
       let lessonsCompleted = 0;
 
-      if (completionsData) {
+      if (completionsData && completionsData.length > 0) {
         lessonsCompleted = completionsData.length;
         totalCalories = completionsData.reduce((sum, completion) => 
           sum + (completion.calories_burned || 0), 0
         );
-        totalMinutes = completionsData.reduce((sum, completion) => 
-          sum + (completion.lesson_completions?.course_lessons?.duration_minutes || 0), 0
-        );
+
+        // Obtener duración de las lecciones completadas
+        const lessonIds = completionsData.map(completion => completion.lesson_id);
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from('course_lessons')
+          .select('duration_minutes')
+          .in('id', lessonIds);
+
+        if (!lessonsError && lessonsData) {
+          totalMinutes = lessonsData.reduce((sum, lesson) => 
+            sum + (lesson.duration_minutes || 0), 0
+          );
+        }
       }
 
       setCourseStats({
