@@ -18,7 +18,8 @@ import {
   Timer,
   TrendingUp,
   Award,
-  Calendar
+  Calendar,
+  CheckCircle
 } from 'lucide-react';
 
 interface Lesson {
