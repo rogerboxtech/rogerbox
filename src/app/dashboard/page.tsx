@@ -8,7 +8,13 @@ import { supabase } from '@/lib/supabase';
 import { trackCourseView } from '@/lib/analytics';
 import Footer from '@/components/Footer';
 import QuickLoading from '@/components/QuickLoading';
+import CourseLoadingSkeleton from '@/components/CourseLoadingSkeleton';
+import GoalSuggestionCard from '@/components/GoalSuggestionCard';
+import ProgressCard from '@/components/ProgressCard';
+import CourseHeroCard from '@/components/CourseHeroCard';
+import WeeklyWeightReminder from '@/components/WeeklyWeightReminder';
 import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
+import { generateGoalSuggestion, GoalSuggestion } from '@/lib/goalSuggestion';
 
 interface UserProfile {
   id: string;
@@ -116,6 +122,206 @@ export default function DashboardPage() {
   const [goalError, setGoalError] = useState('');
   const [goalLoading, setGoalLoading] = useState(false);
   const [showBMIModal, setShowBMIModal] = useState(false);
+  
+  // Estados para la sugerencia de meta
+  const [goalSuggestion, setGoalSuggestion] = useState<GoalSuggestion | null>(null);
+  const [showGoalSuggestion, setShowGoalSuggestion] = useState(false);
+  const [isAcceptingGoal, setIsAcceptingGoal] = useState(false);
+  const [showProgressCard, setShowProgressCard] = useState(false);
+  const [isCustomizingGoal, setIsCustomizingGoal] = useState(false);
+  const [showWeeklyWeightReminder, setShowWeeklyWeightReminder] = useState(false);
+  
+  // Estados para cursos comprados
+  const [purchasedCourses, setPurchasedCourses] = useState<any[]>([]);
+  const [nextLesson, setNextLesson] = useState<any>(null);
+  const [loadingPurchasedCourses, setLoadingPurchasedCourses] = useState(false);
+  const [purchasedCourseLessons, setPurchasedCourseLessons] = useState<any[]>([]);
+
+  // Función para simular cursos comprados (en producción vendría de la base de datos)
+  const loadPurchasedCourses = async () => {
+    setLoadingPurchasedCourses(true);
+    try {
+      // Usar el primer curso real de la base de datos como curso comprado
+      const realCourse = realCourses[0];
+      const mockPurchasedCourses = [
+        {
+          id: realCourse?.id || '1',
+          title: realCourse?.title || 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!',
+          description: realCourse?.description || 'Rutina intensa de 40 minutos para quemar grasa y bajar de peso. Este programa te ayudará a mejorar tu resistencia cardiovascular y a definir tu cuerpo.',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          completed_lessons: 0, // Cambiado a 0 para mostrar progreso inicial
+          total_lessons: 12,
+          duration_days: 30,
+          level: 'Intermedio',
+          estimated_calories_per_lesson: 150, // Calorías estimadas por lección
+          purchased_at: new Date().toISOString(),
+          start_date: new Date().toISOString().split('T')[0] // Hoy
+        }
+      ];
+
+      // Obtener lecciones reales de la base de datos
+      let realLessons = [];
+      if (realCourse?.id) {
+        try {
+          const { data: lessonsData, error: lessonsError } = await supabase
+            .from('course_lessons')
+            .select('*')
+            .eq('course_id', realCourse.id)
+            .order('lesson_order', { ascending: true });
+
+          if (lessonsError) {
+            console.error('Error fetching lessons:', lessonsError);
+          } else {
+            realLessons = lessonsData || [];
+          }
+        } catch (error) {
+          console.error('Error fetching lessons:', error);
+        }
+      }
+
+      // Si no hay lecciones en la DB, usar datos de ejemplo como fallback
+      const mockLessons = realLessons.length > 0 ? realLessons : [
+        {
+          id: 'lesson-1',
+          course_id: realCourse?.id || '1',
+          title: 'Introducción y Calentamiento',
+          description: 'Prepara tu cuerpo para la rutina',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          lesson_number: 1,
+          lesson_order: 1,
+          duration_minutes: 15,
+          is_preview: true,
+          views_count: 120,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'lesson-2',
+          course_id: realCourse?.id || '1',
+          title: 'Rutina HIIT: Piernas y Glúteos',
+          description: 'Entrenamiento intenso para tren inferior',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          lesson_number: 2,
+          lesson_order: 2,
+          duration_minutes: 30,
+          is_preview: false,
+          views_count: 80,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'lesson-3',
+          course_id: realCourse?.id || '1',
+          title: 'Rutina HIIT: Brazos y Abdomen',
+          description: 'Fortalece tu tren superior y core',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          lesson_number: 3,
+          lesson_order: 3,
+          duration_minutes: 25,
+          is_preview: false,
+          views_count: 60,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'lesson-4',
+          course_id: realCourse?.id || '1',
+          title: 'Rutina HIIT Intensiva - Día 4',
+          description: 'Ejercicios de alta intensidad para maximizar la quema de grasa',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          lesson_number: 4,
+          lesson_order: 4,
+          duration_minutes: 40,
+          is_preview: false,
+          views_count: 40,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'lesson-5',
+          course_id: realCourse?.id || '1',
+          title: 'Cardio Quema Grasa - Día 5',
+          description: 'Sesión de cardio para acelerar el metabolismo',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: realCourse?.preview_image || '/images/course-placeholder.jpg',
+          lesson_number: 5,
+          lesson_order: 5,
+          duration_minutes: 35,
+          is_preview: false,
+          views_count: 0,
+          created_at: new Date().toISOString()
+        }
+      ];
+
+      setPurchasedCourses(mockPurchasedCourses);
+      setPurchasedCourseLessons(mockLessons);
+
+      // Determinar la próxima lección basada en el progreso del usuario
+      const completedLessons = mockPurchasedCourses[0]?.completed_lessons || 0;
+      
+      // La próxima lección es la siguiente después de las completadas
+      const nextAvailableLesson = mockLessons.find(
+        (lesson) => lesson.lesson_order === completedLessons + 1
+      );
+      
+      // Si no hay próxima lección, usar la primera
+      setNextLesson(nextAvailableLesson || mockLessons[0]);
+    } catch (error) {
+      console.error('Error loading purchased courses:', error);
+    } finally {
+      setLoadingPurchasedCourses(false);
+    }
+  };
+
+  // Función para obtener el curso recomendado basado en el perfil del usuario
+  const getRecommendedCourse = (profile: any) => {
+    if (!profile) return 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!';
+    
+    const currentBMI = profile.weight / Math.pow(profile.height / 100, 2);
+    
+    if (currentBMI >= 30) {
+      return 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!';
+    } else if (currentBMI >= 25) {
+      return 'RUTINA HIIT ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    } else if (profile.goals?.includes('strength')) {
+      return 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    } else {
+      return 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    }
+  };
+
+  // Función para obtener la duración estimada basada en el perfil
+  const getEstimatedDuration = (profile: any) => {
+    if (!profile) return '12 semanas';
+    
+    const currentBMI = profile.weight / Math.pow(profile.height / 100, 2);
+    
+    if (currentBMI >= 30) {
+      return '24 semanas';
+    } else if (currentBMI >= 25) {
+      return '16 semanas';
+    } else {
+      return '12 semanas';
+    }
+  };
+
+  // Cargar cursos comprados - SOLO cuando el usuario realmente compre un curso
+  // useEffect(() => {
+  //   loadPurchasedCourses();
+  // }, []);
+
+  // Verificar si es viernes para mostrar recordatorio de peso
+  useEffect(() => {
+    const today = new Date();
+    const isFriday = today.getDay() === 5; // 5 = viernes
+    const lastWeightReminder = localStorage.getItem('lastWeightReminder');
+    const todayString = today.toDateString();
+    
+    // Mostrar recordatorio si es viernes y no se ha mostrado hoy
+    if (isFriday && lastWeightReminder !== todayString) {
+      setShowWeeklyWeightReminder(true);
+    }
+  }, []);
 
   // Obtener datos del perfil desde Supabase
   useEffect(() => {
@@ -145,6 +351,25 @@ export default function DashboardPage() {
 
           console.log('Dashboard: Perfil encontrado:', data);
           setUserProfile(data);
+          
+            // Generar sugerencia de meta si no tiene target_weight establecido
+            // TEMPORAL: Forzar mostrar sugerencia para testing (comentar en producción)
+            const shouldShowSuggestion = !data.target_weight || !data.goal_deadline; // false para testing normal
+          
+          if (shouldShowSuggestion) {
+            const suggestion = generateGoalSuggestion({
+              name: data.name,
+              height: data.height,
+              weight: data.weight,
+              gender: data.gender,
+              goals: data.goals || [],
+              birthYear: data.birth_year,
+              dietaryHabits: data.dietary_habits
+            });
+            setGoalSuggestion(suggestion);
+            setShowGoalSuggestion(true);
+          }
+          
           setLoading(false);
         } catch (error) {
           console.error('Dashboard: Error inesperado:', error);
@@ -264,6 +489,114 @@ export default function DashboardPage() {
         bgColor: 'bg-red-50',
         borderColor: 'border-red-200'
       };
+    }
+  };
+
+  // Función para aceptar la meta sugerida
+  const handleAcceptGoalSuggestion = async (suggestion: GoalSuggestion) => {
+    setIsAcceptingGoal(true);
+    setGoalError('');
+
+    try {
+      console.log('Aceptando meta sugerida:', suggestion);
+
+      if (!userProfile?.id) {
+        throw new Error('No se encontró el ID del usuario');
+      }
+
+      // Actualizar el perfil con la meta sugerida
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          target_weight: suggestion.targetWeight,
+          goal_deadline: suggestion.deadline,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userProfile.id)
+        .select();
+
+      if (error) {
+        console.error('Error actualizando meta:', error);
+        throw new Error(`Error al establecer la meta: ${error.message || 'Error desconocido'}`);
+      }
+
+      console.log('Meta establecida exitosamente:', data);
+
+      // Actualizar el perfil local
+      setUserProfile(prev => prev ? {
+        ...prev,
+        target_weight: suggestion.targetWeight,
+        goal_deadline: suggestion.deadline
+      } : null);
+
+      // Ocultar la sugerencia
+      setShowGoalSuggestion(false);
+      setGoalSuggestion(null);
+      
+      // Mostrar el card de progreso
+      setShowProgressCard(true);
+      
+      // Resetear estado de personalización
+      setIsCustomizingGoal(false);
+      
+    } catch (error: any) {
+      console.error('Error aceptando meta:', error);
+      setGoalError(error.message || 'Error al establecer la meta. Inténtalo de nuevo.');
+    } finally {
+      setIsAcceptingGoal(false);
+    }
+  };
+
+  // Función para personalizar la meta sugerida
+  const handleCustomizeGoalSuggestion = () => {
+    // Pre-llenar el modal con la sugerencia
+    if (goalSuggestion) {
+      setGoalData({
+        targetWeight: goalSuggestion.targetWeight.toString(),
+        goalType: 'lose', // Por defecto, el usuario puede cambiar
+        deadline: goalSuggestion.deadline
+      });
+    }
+    setShowGoalSuggestion(false);
+    setIsCustomizingGoal(true); // Marcar que estamos personalizando
+    setShowGoalModal(true);
+  };
+
+  // Función para rechazar la meta sugerida
+  const handleDismissGoalSuggestion = () => {
+    setShowGoalSuggestion(false);
+    setGoalSuggestion(null);
+  };
+
+  // Función para cancelar la personalización de meta
+  const handleCancelGoalCustomization = () => {
+    setIsCustomizingGoal(false);
+    setShowGoalModal(false);
+    setGoalSuggestion(null);
+    // Volver a mostrar la sugerencia si no hay meta establecida
+    if (!userProfile?.target_weight) {
+      setShowGoalSuggestion(true);
+    }
+  };
+
+  // Función para manejar el cierre del recordatorio de peso
+  const handleCloseWeightReminder = () => {
+    setShowWeeklyWeightReminder(false);
+    // Marcar que se mostró hoy
+    localStorage.setItem('lastWeightReminder', new Date().toDateString());
+  };
+
+  // Función para manejar el envío del peso
+  const handleWeightSubmit = async (weight: number) => {
+    try {
+      // Aquí se actualizaría el peso en la base de datos
+      console.log('Peso actualizado:', weight);
+      // Actualizar el perfil local
+      if (userProfile) {
+        setUserProfile({ ...userProfile, weight });
+      }
+    } catch (error) {
+      console.error('Error al actualizar peso:', error);
     }
   };
 
@@ -419,14 +752,31 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
         {/* Welcome Message - Centrado arriba del progreso */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">
-            ¡Hola, {userProfile.name}! 👋
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-white/70">
-            Continúa tu cambio físico y alcanza tus metas
-          </p>
-        </div>
+        {/* Welcome Section - Solo si no tiene meta establecida */}
+        {!userProfile?.target_weight && (
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">
+              ¡Hola, {userProfile.name}! 👋
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-white/70">
+              Continúa tu cambio físico y alcanza tus metas
+            </p>
+          </div>
+        )}
+
+        {/* Botón temporal para simular compra de curso - Solo para testing */}
+        {!purchasedCourses.length && (
+          <div className="text-center mb-6">
+            <button
+              onClick={() => {
+                loadPurchasedCourses();
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors text-sm"
+            >
+              🛒 Simular Compra de Curso (Testing)
+            </button>
+          </div>
+        )}
 
         {/* Progress Tracking Section - Solo si el usuario ha comprado cursos */}
         {userProfile && (userProfile as any)?.purchased_courses?.length > 0 && (
@@ -484,7 +834,7 @@ export default function DashboardPage() {
                         'No definida'
                       }
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-3 flex space-x-2">
                       <button 
                         onClick={() => {
                           setGoalData({
@@ -497,6 +847,19 @@ export default function DashboardPage() {
                         className="text-blue-600 hover:text-blue-700 text-xs font-medium bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors"
                       >
                         Actualizar Meta
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setGoalData({
+                            targetWeight: '',
+                            goalType: 'lose',
+                            deadline: ''
+                          });
+                          setShowGoalModal(true);
+                        }}
+                        className="text-green-600 hover:text-green-700 text-xs font-medium bg-green-100 hover:bg-green-200 px-3 py-1 rounded-lg transition-colors"
+                      >
+                        + Nueva Meta
                       </button>
                     </div>
                   </>
@@ -556,38 +919,48 @@ export default function DashboardPage() {
         </div>
         )}
 
-        {/* Welcome Section for New Users - Solo si no ha comprado cursos */}
-        {userProfile && (!((userProfile as any)?.purchased_courses) || (userProfile as any)?.purchased_courses.length === 0) && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-[#85ea10]/10 to-[#7dd30f]/10 rounded-2xl p-6 border border-[#85ea10]/20">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#85ea10]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">🚀</span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  ¡Bienvenido a tu transformación!
-                </h3>
-                <p className="text-gray-600 dark:text-white/70 mb-4">
-                  Descubre nuestros cursos y comienza tu viaje hacia una vida más saludable
-                </p>
-                <div className="flex flex-wrap justify-center gap-2 text-sm text-gray-500 dark:text-white/60">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
-                    Entrenamientos personalizados
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
-                    Seguimiento de progreso
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#85ea10] rounded-full"></span>
-                    Resultados garantizados
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Course Hero Card - Si tiene cursos comprados */}
+        {purchasedCourses.length > 0 && nextLesson && (
+          <CourseHeroCard
+            userProfile={userProfile}
+            purchasedCourse={purchasedCourses[0]}
+            nextLesson={nextLesson}
+            lessons={purchasedCourseLessons}
+            onStartLesson={(lessonId) => {
+              console.log('Starting lesson:', lessonId);
+              // Aquí iría la lógica para iniciar la lección
+            }}
+          />
         )}
+
+        {/* Goal Suggestion Card - Solo si NO tiene meta establecida Y NO tiene cursos comprados */}
+        {!userProfile?.target_weight && !purchasedCourses.length && showGoalSuggestion && goalSuggestion && (
+          <GoalSuggestionCard
+            suggestion={goalSuggestion}
+            onAccept={handleAcceptGoalSuggestion}
+            onCustomize={handleCustomizeGoalSuggestion}
+            onDismiss={handleDismissGoalSuggestion}
+            isLoading={isAcceptingGoal}
+          />
+        )}
+
+        {/* Progress Card - Solo si SÍ tiene meta establecida Y NO tiene cursos comprados, O si está personalizando meta */}
+        {((userProfile?.target_weight && userProfile?.goal_deadline) || isCustomizingGoal) && !purchasedCourses.length && (
+          <ProgressCard
+            userProfile={userProfile}
+            goalSuggestion={isCustomizingGoal && goalSuggestion ? goalSuggestion : {
+              targetWeight: userProfile.target_weight,
+              deadline: userProfile.goal_deadline,
+              recommendedCourse: getRecommendedCourse(userProfile),
+              estimatedDuration: getEstimatedDuration(userProfile)
+            }}
+            onCustomize={() => {
+              setShowProgressCard(false);
+              setShowGoalModal(true);
+            }}
+          />
+        )}
+
 
         {/* Category Filters - Más compactos */}
         <div className="mb-6">
@@ -610,7 +983,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Recommended Courses */}
-        {recommendedCourses.length > 0 && (
+        {loadingCourses ? (
+          <div className="mb-8">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold dashboard-title text-gray-900 dark:text-white">
+                Cursos Recomendados
+              </h2>
+            </div>
+            <CourseLoadingSkeleton count={3} showRecommended={true} />
+          </div>
+        ) : recommendedCourses.length > 0 && (
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.map(course => (
@@ -741,15 +1123,7 @@ export default function DashboardPage() {
             </h2>
           </div>
           {loadingCourses ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#85ea10] mx-auto mb-4"></div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Cargando cursos...
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Estamos preparando los mejores cursos para ti
-              </p>
-            </div>
+            <CourseLoadingSkeleton count={6} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map(course => (
@@ -897,13 +1271,21 @@ export default function DashboardPage() {
       {/* Footer */}
       <Footer />
 
+      {/* Recordatorio semanal de peso */}
+      {showWeeklyWeightReminder && (
+        <WeeklyWeightReminder
+          onClose={handleCloseWeightReminder}
+          onWeightSubmit={handleWeightSubmit}
+        />
+      )}
+
       {/* Modal para establecer meta */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Establece tu Meta
+                {userProfile?.target_weight ? 'Establece una Meta Adicional' : 'Establece tu Meta'}
               </h2>
               <button
                 onClick={() => setShowGoalModal(false)}
@@ -978,7 +1360,7 @@ export default function DashboardPage() {
             {/* Botones */}
             <div className="flex space-x-3 mt-6">
               <button
-                onClick={() => setShowGoalModal(false)}
+                onClick={isCustomizingGoal ? handleCancelGoalCustomization : () => setShowGoalModal(false)}
                 disabled={goalLoading}
                 className="flex-1 px-4 py-2 border border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-white dark:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -95,14 +95,67 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setLoading(true);
       setError(null);
 
-      const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('id', resolvedParams.id)
-        .eq('is_published', true)
-        .single();
+      // Datos de ejemplo para los cursos
+      const sampleCourses: Course[] = [
+        {
+          id: '1',
+          title: 'Transformación Total 90 Días',
+          short_description: 'Programa completo de transformación física en 90 días con desbloqueo diario de clases.',
+          description: 'Este curso te llevará a través de una transformación completa de tu cuerpo y mente en 90 días. Con rutinas diarias progresivas, plan nutricional personalizado y seguimiento constante, lograrás los resultados que siempre has deseado.',
+          preview_image: '/images/curso-transformacion.jpg',
+          price: 89000,
+          discount_percentage: 40,
+          category: 'Pérdida de Peso',
+          duration_days: 90,
+          students_count: 2847,
+          rating: 4.9,
+          calories_burned: 500,
+          level: 'Intermedio',
+          is_published: true,
+          created_at: new Date().toISOString(),
+          intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        {
+          id: '2',
+          title: 'HIIT Quema Grasa',
+          short_description: 'Entrenamiento de alta intensidad para quemar grasa y tonificar músculos.',
+          description: 'Rutinas HIIT diseñadas para maximizar la quema de grasa en el menor tiempo posible. Perfecto para personas con poco tiempo pero que quieren resultados efectivos.',
+          preview_image: '/images/curso-hiit.jpg',
+          price: 69000,
+          discount_percentage: 30,
+          category: 'HIIT',
+          duration_days: 21,
+          students_count: 1456,
+          rating: 4.7,
+          calories_burned: 400,
+          level: 'Avanzado',
+          is_published: true,
+          created_at: new Date().toISOString(),
+          intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        {
+          id: '3',
+          title: 'Fuerza y Músculo',
+          short_description: 'Desarrolla fuerza muscular con ejercicios progresivos y técnicas avanzadas.',
+          description: 'Programa completo para desarrollar fuerza y masa muscular de forma segura y efectiva. Incluye técnicas avanzadas y progresión personalizada.',
+          preview_image: '/images/curso-fuerza.jpg',
+          price: 79000,
+          discount_percentage: 0,
+          category: 'Fuerza',
+          duration_days: 60,
+          students_count: 1923,
+          rating: 4.8,
+          calories_burned: 350,
+          level: 'Intermedio',
+          is_published: true,
+          created_at: new Date().toISOString(),
+          intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        }
+      ];
 
-      if (courseError) throw courseError;
+      // Buscar el curso en los datos de ejemplo
+      const courseData = sampleCourses.find(c => c.id === resolvedParams.id);
+      
       if (!courseData) {
         setError('Curso no encontrado');
         return;
@@ -110,14 +163,53 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
       setCourse(courseData);
 
-      const { data: lessonsData, error: lessonsError } = await supabase
-        .from('course_lessons')
-        .select('*')
-        .eq('course_id', resolvedParams.id)
-        .order('lesson_order', { ascending: true });
+      // Lecciones de ejemplo
+      const sampleLessons: Lesson[] = [
+        {
+          id: '1',
+          course_id: resolvedParams.id,
+          title: 'Introducción y Calentamiento',
+          description: 'Conoce los fundamentos y prepárate para el entrenamiento',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: '/images/leccion-1.jpg',
+          lesson_number: 1,
+          lesson_order: 1,
+          duration_minutes: 15,
+          is_preview: true,
+          views_count: 0,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          course_id: resolvedParams.id,
+          title: 'Rutina Principal',
+          description: 'Ejercicios principales del día',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: '/images/leccion-2.jpg',
+          lesson_number: 2,
+          lesson_order: 2,
+          duration_minutes: 30,
+          is_preview: false,
+          views_count: 0,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '3',
+          course_id: resolvedParams.id,
+          title: 'Enfriamiento y Estiramiento',
+          description: 'Relajación y estiramiento final',
+          video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          preview_image: '/images/leccion-3.jpg',
+          lesson_number: 3,
+          lesson_order: 3,
+          duration_minutes: 10,
+          is_preview: false,
+          views_count: 0,
+          created_at: new Date().toISOString()
+        }
+      ];
 
-      if (lessonsError) throw lessonsError;
-      setLessons(lessonsData || []);
+      setLessons(sampleLessons);
 
       // Verificar si el usuario ya calificó este curso
       await checkUserRating();
