@@ -18,12 +18,14 @@ interface ProgressCardProps {
   userProfile: any;
   goalSuggestion: any;
   onStartCourse?: () => void;
+  onCustomize?: () => void;
 }
 
 export default function ProgressCard({ 
   userProfile, 
   goalSuggestion, 
-  onStartCourse 
+  onStartCourse,
+  onCustomize 
 }: ProgressCardProps) {
   const [streakDays, setStreakDays] = useState(0);
   const [progressPercentage, setProgressPercentage] = useState(0);
