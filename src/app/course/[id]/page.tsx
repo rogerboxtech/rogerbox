@@ -243,25 +243,49 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handlePayment = async () => {
+    if (!course || !session?.user?.email) return;
+    
     setPaymentStatus('processing');
     
-    // Simular proceso de pago con Wompi
     try {
-      // Simular delay de pago
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Simular éxito del pago (en producción aquí iría la integración real con Wompi)
-      setPaymentStatus('success');
-      setShowPaymentModal(false);
-      
-      // Mostrar calendario después del pago exitoso
-      setTimeout(() => {
-        setShowCalendarModal(true);
-      }, 1000);
+      // Crear orden en Wompi
+      const response = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId: course.id,
+          amount: course.price,
+          customerEmail: session.user.email,
+          customerName: session.user.name || ''
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear la orden');
+      }
+
+      // Redirigir a Wompi para completar el pago
+      if (data.wompi?.redirect_url) {
+        window.location.href = data.wompi.redirect_url;
+      } else {
+        throw new Error('No se recibió URL de redirección');
+      }
       
     } catch (error) {
       setPaymentStatus('error');
       console.error('Error en el pago:', error);
+      
+      // Mostrar alerta de error
+      setRogerAlert({
+        isOpen: true,
+        title: 'Error en el Pago',
+        message: 'Hubo un problema al procesar tu pago. Por favor, intenta nuevamente.',
+        type: 'error'
+      });
     }
   };
 
@@ -845,7 +869,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Pagar curso
+                Pagar con Wompi
               </h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -919,16 +943,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 {paymentStatus === 'processing' ? (
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span>Procesando pago...</span>
+                    <span>Redirigiendo a Wompi...</span>
                   </div>
                 ) : (
-                  'Pagar con Wompi'
+                  'Continuar con Wompi'
                 )}
               </button>
 
               {/* Información de seguridad */}
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                🔒 Pago seguro procesado por Wompi
+              <div className="text-xs text-gray-500 dark:text-gray-400 text-center space-y-1">
+                <div>🔒 Pago seguro procesado por Wompi</div>
+                <div>Serás redirigido para completar tu pago</div>
               </div>
             </div>
           </div>
