@@ -248,6 +248,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     setPaymentStatus('processing');
     
     try {
+      // Calcular precio final con descuento
+      const discountAmount = course.discount_percentage > 0 
+        ? (course.price * course.discount_percentage) / 100 
+        : 0;
+      const finalPrice = course.price - discountAmount;
+      
       // Crear orden en Wompi
       const response = await fetch('/api/payments/create-order', {
         method: 'POST',
@@ -256,7 +262,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         },
         body: JSON.stringify({
           courseId: course.id,
-          amount: course.price,
+          amount: finalPrice,
+          originalPrice: course.price,
+          discountAmount: discountAmount,
           customerEmail: session.user.email,
           customerName: session.user.name || ''
         })
@@ -946,7 +954,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <span>Redirigiendo a Wompi...</span>
                   </div>
                 ) : (
-                  'Continuar con Wompi'
+                  'Ir a Pagar'
                 )}
               </button>
 

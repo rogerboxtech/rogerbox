@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { courseId, amount, customerEmail, customerName } = body;
+    const { courseId, amount, originalPrice, discountAmount, customerEmail, customerName } = body;
 
     // Validar datos requeridos
     if (!courseId || !amount || !customerEmail) {
@@ -80,7 +80,15 @@ export async function POST(request: NextRequest) {
         wompi_reference: reference,
         customer_email: customerEmail,
         customer_name: customerName || '',
-        expires_at: new Date(Date.now() + 30 * 60 * 1000) // 30 minutos
+        expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30 minutos
+        // Metadatos adicionales para descuentos
+        metadata: {
+          original_price: originalPrice || amount,
+          discount_amount: discountAmount || 0,
+          discount_percentage: originalPrice && discountAmount 
+            ? Math.round((discountAmount / originalPrice) * 100) 
+            : 0
+        }
       })
       .select()
       .single();
