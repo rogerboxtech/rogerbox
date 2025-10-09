@@ -95,7 +95,61 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setLoading(true);
       setError(null);
 
-      // Datos de ejemplo para los cursos
+      // Buscar curso por slug en la base de datos
+      const { data: course, error: courseError } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('slug', resolvedParams.id)
+        .eq('is_published', true)
+        .single();
+
+      if (courseError || !course) {
+        setError('Curso no encontrado');
+        setLoading(false);
+        return;
+      }
+
+      setCourse(course);
+
+      // Cargar lecciones del curso
+      const { data: lessons, error: lessonsError } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('course_id', course.id)
+        .order('order_index', { ascending: true });
+
+      if (lessonsError) {
+        console.error('Error loading lessons:', lessonsError);
+      } else {
+        setLessons(lessons || []);
+      }
+
+      // Verificar si el usuario está inscrito
+      if ((session as any)?.user?.id) {
+        const { data: enrollment } = await supabase
+          .from('course_purchases')
+          .select('id')
+          .eq('user_id', (session as any).user.id)
+          .eq('course_id', course.id)
+          .eq('is_active', true)
+          .single();
+
+        setIsEnrolled(!!enrollment);
+      }
+
+      // Verificar si es favorito
+      if ((session as any)?.user?.id) {
+        const { data: favorite } = await supabase
+          .from('user_favorites')
+          .select('id')
+          .eq('user_id', (session as any).user.id)
+          .eq('course_id', course.id)
+          .single();
+
+        setIsFavorite(!!favorite);
+      }
+
+      // Datos de ejemplo para los cursos (fallback)
       const sampleCourses: Course[] = [
         {
           id: '1',
