@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 export interface UnifiedCourse {
   id: string;
   title: string;
+  slug: string;
   description: string;
   short_description: string;
   thumbnail: string;
@@ -70,6 +71,7 @@ class UnifiedCoursesService {
         .select(`
           id,
           title,
+          slug,
           description,
           short_description,
           price,
@@ -119,6 +121,7 @@ class UnifiedCoursesService {
         return {
           id: course.id,
           title: course.title,
+          slug: course.slug || course.id, // Fallback a ID si no hay slug
           description: course.description || '',
           short_description: course.short_description || '',
           thumbnail: course.preview_image || course.thumbnail_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),

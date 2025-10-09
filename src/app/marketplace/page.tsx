@@ -581,7 +581,7 @@ export default function HomePage() {
               <div
                 key={course.id}
                 className="bg-white/80 dark:bg-white/10 backdrop-blur-lg rounded-2xl overflow-hidden border border-gray-200 dark:border-white/20 hover:bg-gray-50 dark:hover:bg-white/15 hover:border-[#85ea10]/30 hover:scale-[1.02] transition-all duration-300 ease-out cursor-pointer group shadow-lg dark:shadow-none"
-                onClick={() => router.push(`/course/${course.id}`)}
+                onClick={() => router.push(`/course/${course.slug || course.id}`)}
               >
                 {/* Course Thumbnail */}
                 <div className="relative aspect-video bg-gradient-to-br from-[#85ea10]/20 to-[#7dd30f]/20">

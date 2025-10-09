@@ -595,7 +595,7 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
                     <div
                       key={course.id}
                       className="bg-black/40 rounded-2xl overflow-hidden border border-white/20 hover:border-[#85ea10] transition-all duration-300 group cursor-pointer"
-                      onClick={() => router.push(`/course/${course.id}`)}
+                      onClick={() => router.push(`/course/${course.slug || course.id}`)}
                     >
                       {/* Course card content */}
                       <div className="p-6">
@@ -649,7 +649,7 @@ export default function CourseDashboard({ userProfile }: CourseDashboardProps) {
                   <div
                     key={course.id}
                     className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 cursor-pointer"
-                    onClick={() => router.push(`/course/${course.id}`)}
+                    onClick={() => router.push(`/course/${course.slug || course.id}`)}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">

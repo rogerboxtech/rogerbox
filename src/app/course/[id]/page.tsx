@@ -95,13 +95,38 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setLoading(true);
       setError(null);
 
-      // Buscar curso por slug en la base de datos
-      const { data: course, error: courseError } = await supabase
+      // Limpiar el ID del curso (remover parámetros de query)
+      const cleanId = resolvedParams.id.split('?')[0];
+
+      // Buscar curso por slug o UUID en la base de datos
+      let course = null;
+      let courseError = null;
+
+      // Primero intentar buscar por slug
+      const { data: courseBySlug, error: slugError } = await supabase
         .from('courses')
         .select('*')
-        .eq('slug', resolvedParams.id)
+        .eq('slug', cleanId)
         .eq('is_published', true)
         .single();
+
+      if (courseBySlug && !slugError) {
+        course = courseBySlug;
+      } else {
+        // Si no se encuentra por slug, intentar por UUID
+        const { data: courseById, error: idError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', cleanId)
+          .eq('is_published', true)
+          .single();
+
+        if (courseById && !idError) {
+          course = courseById;
+        } else {
+          courseError = idError;
+        }
+      }
 
       if (courseError || !course) {
         setError('Curso no encontrado');
@@ -112,41 +137,57 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setCourse(course);
 
       // Cargar lecciones del curso
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('course_id', course.id)
-        .order('order_index', { ascending: true });
+      try {
+        const { data: lessons, error: lessonsError } = await supabase
+          .from('course_lessons')
+          .select('*')
+          .eq('course_id', course.id)
+          .order('lesson_order', { ascending: true });
 
-      if (lessonsError) {
-        console.error('Error loading lessons:', lessonsError);
-      } else {
-        setLessons(lessons || []);
+        if (lessonsError) {
+          console.warn('Warning: Could not load lessons:', lessonsError);
+          setLessons([]);
+        } else {
+          setLessons(lessons || []);
+        }
+      } catch (error) {
+        console.warn('Warning: Error loading lessons:', error);
+        setLessons([]);
       }
 
       // Verificar si el usuario está inscrito
       if ((session as any)?.user?.id) {
-        const { data: enrollment } = await supabase
-          .from('course_purchases')
-          .select('id')
-          .eq('user_id', (session as any).user.id)
-          .eq('course_id', course.id)
-          .eq('is_active', true)
-          .single();
+        try {
+          const { data: enrollment } = await supabase
+            .from('course_purchases')
+            .select('id')
+            .eq('user_id', (session as any).user.id)
+            .eq('course_id', course.id)
+            .eq('is_active', true)
+            .single();
 
-        setIsEnrolled(!!enrollment);
+          setIsEnrolled(!!enrollment);
+        } catch (error) {
+          console.warn('Warning: Could not check enrollment status:', error);
+          setIsEnrolled(false);
+        }
       }
 
       // Verificar si es favorito
       if ((session as any)?.user?.id) {
-        const { data: favorite } = await supabase
-          .from('user_favorites')
-          .select('id')
-          .eq('user_id', (session as any).user.id)
-          .eq('course_id', course.id)
-          .single();
+        try {
+          const { data: favorite } = await supabase
+            .from('user_favorites')
+            .select('id')
+            .eq('user_id', (session as any).user.id)
+            .eq('course_id', course.id)
+            .single();
 
-        setIsFavorite(!!favorite);
+          setIsFavorite(!!favorite);
+        } catch (error) {
+          console.warn('Warning: Could not check favorite status:', error);
+          setIsFavorite(false);
+        }
       }
 
       // Datos de ejemplo para los cursos (fallback)

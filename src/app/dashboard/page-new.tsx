@@ -405,7 +405,7 @@ export default function DashboardPage() {
                         ${course.price}
                       </div>
                       <button
-                        onClick={() => router.push(`/course/${course.id}`)}
+                        onClick={() => router.push(`/course/${course.slug || course.id}`)}
                         className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                       ${course.price}
                     </div>
                     <button
-                      onClick={() => router.push(`/course/${course.id}`)}
+                      onClick={() => router.push(`/course/${course.slug || course.id}`)}
                       className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       <ShoppingCart className="w-4 h-4" />

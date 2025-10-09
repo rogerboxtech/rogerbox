@@ -1100,7 +1100,7 @@ export default function DashboardPage() {
                       
                       {/* Botón */}
                       <button
-                        onClick={() => router.push(`/course/${course.id}`)}
+                        onClick={() => router.push(`/course/${course.slug || course.id}`)}
                         className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                       >
                         <ShoppingCart className="w-4 h-4" />
