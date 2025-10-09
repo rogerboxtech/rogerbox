@@ -259,7 +259,7 @@ export default function HomePage() {
                       onClick={async () => {
                         // Trackear la visita al curso
                         await trackCourseView(course.id);
-                        router.push(`/course/${course.id}`);
+                        router.push(`/course/${course.slug || course.id}`);
                       }}
                       className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2 shadow-lg"
                     >

@@ -548,7 +548,7 @@ export default function CoursesPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/course/${course.id}`);
+                        router.push(`/course/${course.slug || course.id}`);
                       }}
                       className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 flex items-center space-x-2"
                     >
