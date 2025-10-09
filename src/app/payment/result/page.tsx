@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle, XCircle, Clock, ArrowRight } from 'lucide-react';
@@ -15,7 +15,7 @@ interface OrderResult {
   created_at: string;
 }
 
-export default function PaymentResultPage() {
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [order, setOrder] = useState<OrderResult | null>(null);
@@ -210,5 +210,26 @@ export default function PaymentResultPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Componente de carga para Suspense
+function PaymentResultLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#85ea10] to-[#6bc20a] flex items-center justify-center">
+      <div className="bg-white rounded-2xl p-8 shadow-2xl">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#85ea10] mx-auto"></div>
+        <p className="text-gray-600 mt-4 text-center">Cargando resultado del pago...</p>
+      </div>
+    </div>
+  );
+}
+
+// Componente principal con Suspense
+export default function PaymentResultPage() {
+  return (
+    <Suspense fallback={<PaymentResultLoading />}>
+      <PaymentResultContent />
+    </Suspense>
   );
 }
