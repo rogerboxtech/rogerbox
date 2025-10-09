@@ -76,11 +76,13 @@ class WompiService {
   private config: WompiConfig;
 
   constructor() {
+    const environment = (process.env.WOMPI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox';
+    
     this.config = {
       publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '',
       privateKey: process.env.WOMPI_PRIVATE_KEY || '',
-      environment: (process.env.WOMPI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-      baseUrl: this.getBaseUrl()
+      environment: environment,
+      baseUrl: this.getBaseUrl(environment)
     };
 
     if (!this.config.publicKey || !this.config.privateKey) {
@@ -88,8 +90,9 @@ class WompiService {
     }
   }
 
-  private getBaseUrl(): string {
-    return this.config.environment === 'sandbox' 
+  private getBaseUrl(environment?: 'sandbox' | 'production'): string {
+    const env = environment || this.config?.environment || 'sandbox';
+    return env === 'sandbox' 
       ? 'https://sandbox.wompi.co/v1'
       : 'https://production.wompi.co/v1';
   }
