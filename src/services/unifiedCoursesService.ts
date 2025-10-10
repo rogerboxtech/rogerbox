@@ -64,6 +64,8 @@ class UnifiedCoursesService {
   async getCourses(): Promise<UnifiedCourse[]> {
     try {
       console.log('🚀 UnifiedCourses: Cargando desde Supabase...');
+      console.log('🔧 UnifiedCourses: Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Configurado' : '❌ No configurado');
+      console.log('🔧 UnifiedCourses: Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado');
 
       // Consulta optimizada - SOLO campos esenciales, SIN preview_image
       const { data: coursesData, error: coursesError } = await supabase
@@ -75,6 +77,7 @@ class UnifiedCoursesService {
           description,
           short_description,
           price,
+          original_price,
           discount_percentage,
           category,
           created_at,
@@ -127,7 +130,7 @@ class UnifiedCoursesService {
           thumbnail: course.preview_image || course.thumbnail_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),
           preview_image: course.preview_image || course.video_preview_url || course.thumbnail_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),
           price: course.price || 0,
-          original_price: course.discount_percentage > 0 ? course.price : undefined,
+          original_price: course.original_price,
           discount_percentage: course.discount_percentage || 0,
           category_name: categoryMap[course.category] || course.category || 'Sin categoría',
           rating: course.rating || 4.8,
@@ -196,12 +199,13 @@ class UnifiedCoursesService {
       return {
         id: data.id,
         title: data.title,
+        slug: (data as any).slug || data.id, // Fallback a ID si no hay slug
         description: data.description || '',
         short_description: data.short_description || '',
         thumbnail: data.preview_image || data.thumbnail_url || (data.intro_video_url ? this.getYouTubeThumbnail(data.intro_video_url) : '/images/course-placeholder.jpg'),
         preview_image: data.preview_image || data.video_preview_url || data.thumbnail_url || (data.intro_video_url ? this.getYouTubeThumbnail(data.intro_video_url) : '/images/course-placeholder.jpg'),
         price: data.price || 0,
-        original_price: data.discount_percentage > 0 ? data.price : undefined,
+        original_price: (data as any).original_price,
         discount_percentage: data.discount_percentage || 0,
         category_name: categoryData?.name || data.category || 'Sin categoría',
         rating: data.rating || 4.8,

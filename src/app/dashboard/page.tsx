@@ -75,32 +75,20 @@ export default function DashboardPage() {
     refresh: refreshCourses
   } = useUnifiedCourses();
 
-  // Funciones de precios sin IVA (temporalmente)
+  // Debug logs
+  console.log('📊 Dashboard: realCourses length:', realCourses.length);
+  console.log('📊 Dashboard: loadingCourses:', loadingCourses);
+  console.log('📊 Dashboard: coursesError:', coursesError);
+
+  // Funciones de precios - usar datos directos de la BD
   const calculateFinalPrice = (course: any) => {
-    let basePrice = course.price || 0;
-    
-    // Temporalmente sin IVA
-    // if (course.include_iva && course.iva_percentage) {
-    //   basePrice = Math.round(basePrice * (1 + course.iva_percentage / 100));
-    // }
-    
-    // Aplicar descuento si existe
-    if (course.discount_percentage && course.discount_percentage > 0) {
-      basePrice = Math.round(basePrice * (1 - course.discount_percentage / 100));
-    }
-    
-    return basePrice;
+    // course.price ya tiene el descuento aplicado en la BD
+    return course.price || 0;
   };
 
   const calculateOriginalPrice = (course: any) => {
-    let basePrice = course.price || 0;
-    
-    // Temporalmente sin IVA
-    // if (course.include_iva && course.iva_percentage) {
-    //   basePrice = Math.round(basePrice * (1 + course.iva_percentage / 100));
-    // }
-    
-    return basePrice;
+    // course.original_price es el precio original sin descuento
+    return course.original_price || course.price || 0;
   };
 
   // Debug logs
@@ -1014,12 +1002,15 @@ export default function DashboardPage() {
                         <Play className="w-12 h-12 text-[#85ea10]" />
                       </div>
                     </div>
-                    <div className="absolute top-3 left-3 bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                    {/* Tag Recomendado - Más pequeño y discreto */}
+                    <div className="absolute top-2 left-2 bg-[#85ea10] text-black px-2 py-0.5 rounded-full text-xs font-semibold shadow-md">
                       Recomendado
                     </div>
-                    <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-white dark:bg-gray-800/90 px-2 py-1 rounded-full">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-medium">{course.rating}</span>
+                    
+                    {/* Rating - Movido abajo para no interferir con la imagen */}
+                    <div className="absolute bottom-3 right-3 flex items-center space-x-1 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span className="text-sm font-semibold">{course.rating}</span>
                     </div>
                   </div>
                   <div className="p-6 flex flex-col flex-grow">

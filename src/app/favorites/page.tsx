@@ -120,7 +120,7 @@ export default function FavoritesPage() {
         router.push(`/complement/${item.id}`);
         break;
       case 'course':
-        router.push(`/course/${item.slug || item.id}`);
+         router.push(`/course/${(item as any).slug || item.id}`);
         break;
       case 'blog':
         router.push(`/blog/${item.id}`);

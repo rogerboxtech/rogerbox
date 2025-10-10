@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
     // Generar slug único
     const slug = generateUniqueSlug(title, existingSlugs);
 
+    // Calcular precios correctamente
+    let finalPrice = price;
+    let originalPrice = null;
+    
+    if (discount_percentage > 0) {
+      // Si hay descuento, el precio ingresado es el precio original
+      originalPrice = price;
+      finalPrice = Math.round(price * (1 - discount_percentage / 100));
+    }
+
     // Crear el curso
     const { data: course, error: courseError } = await supabase
       .from('courses')
@@ -55,7 +65,8 @@ export async function POST(request: NextRequest) {
         title,
         short_description,
         description,
-        price,
+        price: finalPrice, // Precio final con descuento aplicado
+        original_price: originalPrice, // Precio original sin descuento
         discount_percentage,
         category,
         level,

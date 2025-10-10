@@ -177,10 +177,10 @@ export default function HomePage() {
                     )}
                   </div>
                   
-                  {/* Rating */}
-                  <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 px-2 py-1 rounded-full">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-sm font-medium">{course.rating}</span>
+                  {/* Rating - Movido abajo para mejor visibilidad */}
+                  <div className="absolute bottom-3 right-3 flex items-center space-x-1 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="text-sm font-semibold">{course.rating}</span>
                   </div>
                 </div>
                 <div className="p-6 flex flex-col flex-grow">

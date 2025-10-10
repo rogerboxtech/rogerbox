@@ -375,7 +375,7 @@ export default function DashboardPage() {
                     <div className="aspect-video bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">
                       <Play className="w-12 h-12 text-[#85ea10]" />
                     </div>
-                    <div className="absolute top-3 left-3 bg-[#85ea10] text-black px-3 py-1 rounded-full text-sm font-bold">
+                    <div className="absolute top-2 left-2 bg-[#85ea10] text-black px-2 py-0.5 rounded-full text-xs font-semibold shadow-md">
                       Recomendado
                     </div>
                     <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded-full">
@@ -405,7 +405,7 @@ export default function DashboardPage() {
                         ${course.price}
                       </div>
                       <button
-                        onClick={() => router.push(`/course/${course.slug || course.id}`)}
+                        onClick={() => router.push(`/course/${(course as any).slug || course.id}`)}
                         className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                       ${course.price}
                     </div>
                     <button
-                      onClick={() => router.push(`/course/${course.slug || course.id}`)}
+                      onClick={() => router.push(`/course/${(course as any).slug || course.id}`)}
                       className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       <ShoppingCart className="w-4 h-4" />
