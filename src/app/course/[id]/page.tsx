@@ -261,7 +261,8 @@ export default function CourseDetailPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al crear la orden de pago');
+        const errorData = await response.json();
+        throw new Error(`Error al crear la orden de pago: ${errorData.error || 'Error desconocido'}`);
       }
 
       const data = await response.json();
