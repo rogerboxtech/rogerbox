@@ -101,16 +101,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear transacción en Wompi
+    // Crear transacción en Wompi con método de pago
     const wompiOrder = {
       amount_in_cents: Math.round(amount * 100), // Convertir a centavos
       currency: 'COP',
       customer_email: customerEmail,
       reference: reference,
-      payment_method: {
-        type: 'CARD',
-        installments: 1
-      },
+        // Otros campos de la transacción a crear...
+        payment_method: {
+          type: "NEQUI",
+          phone_number: "3991111111" // Esto resultará current una transacción APROBADA
+        },
       redirect_url: `${process.env.NEXTAUTH_URL}/payment/result?order_id=${order.id}`
     };
 

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { Star, Clock, Users, Play, ShoppingCart, Heart, ArrowLeft, CheckCircle, Zap, Target, Award, Shield, Tag } from 'lucide-react';
+import WompiPaymentWidget from '@/components/WompiPaymentWidget';
 
 interface Course {
   id: string;
@@ -57,6 +58,7 @@ export default function CourseDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [categoryMap, setCategoryMap] = useState<{ [key: string]: string }>({});
+  const [showPaymentWidget, setShowPaymentWidget] = useState(false);
   const DESCRIPTION_LIMIT = 300; // Límite de caracteres para la descripción
 
   // Cargar categorías desde la base de datos
@@ -193,7 +195,7 @@ export default function CourseDetailPage() {
         } else {
           setLessons(lessons || []);
         }
-      } catch (error) {
+    } catch (error) {
         console.warn('Warning: Error loading lessons:', error);
         setLessons([]);
       }
@@ -227,7 +229,7 @@ export default function CourseDetailPage() {
             .maybeSingle();
 
           setIsFavorite(!!favorite);
-        } catch (error) {
+    } catch (error) {
           console.warn('Warning: Could not check favorite status:', error);
           setIsFavorite(false);
         }
@@ -241,49 +243,37 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = () => {
     if (!course || !session?.user) return;
+    setShowPaymentWidget(true);
+  };
 
-    try {
-      const response = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          courseId: course.id,
-          amount: course.price,
-          originalPrice: course.original_price || course.price,
-          discountAmount: course.original_price ? course.original_price - course.price : 0,
-          customerEmail: (session.user as any).email,
-          customerName: (session.user as any).name || '',
-        }),
-      });
+  const handlePaymentSuccess = async (transactionId: string) => {
+    console.log('✅ Pago exitoso:', transactionId);
+    setShowPaymentWidget(false);
+    
+    // Aquí podrías actualizar el estado del curso como comprado
+    setIsEnrolled(true);
+    
+    // Mostrar mensaje de éxito
+    alert('¡Pago exitoso! Ya tienes acceso al curso.');
+    
+    // Opcional: redirigir al dashboard o a la primera lección
+    // router.push('/dashboard');
+  };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Error al crear la orden de pago: ${errorData.error || 'Error desconocido'}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else {
-        throw new Error('URL de pago no disponible');
-      }
-    } catch (error) {
-      console.error('Error al procesar el pago:', error);
-      alert('Error al procesar el pago. Por favor, intenta de nuevo.');
-    }
+  const handlePaymentError = (error: string) => {
+    console.error('❌ Error en el pago:', error);
+    setShowPaymentWidget(false);
+    alert(`Error en el pago: ${error}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#85ea10] mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando curso...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando curso...</p>
         </div>
       </div>
     );
@@ -291,15 +281,15 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-24 h-24 mx-auto mb-6 text-red-500">
             <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Curso no encontrado</h1>
-          <p className="text-gray-600 mb-6">El curso que buscas no existe o no está disponible</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Curso no encontrado</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">El curso que buscas no existe o no está disponible</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-lg transition-colors duration-150"
@@ -315,7 +305,7 @@ export default function CourseDetailPage() {
   const finalPrice = course.price;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - Video and Course Info */}
@@ -324,7 +314,7 @@ export default function CourseDetailPage() {
             <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-lg">
               <img
                 src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'}
-                alt={course.title}
+                      alt={course.title}
                 className="w-full h-64 sm:h-80 lg:h-96 object-cover"
               />
               
@@ -335,145 +325,145 @@ export default function CourseDetailPage() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <button className="w-16 h-16 bg-[#85ea10] rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                   <Play className="w-6 h-6 text-black ml-1" />
-                </button>
-              </div>
+                      </button>
+                    </div>
 
               {/* RogerBox Text - TV Channel Style */}
               <div className="absolute bottom-4 right-4">
                 <span className="text-white/50 font-bold text-sm tracking-wide drop-shadow-md">
                   ROGERBOX
                 </span>
-              </div>
+                    </div>
 
             </div>
 
             {/* Course Title and Description */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 leading-tight">
-                {course.title}
-              </h1>
-              
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+                    {course.title}
+                  </h1>
+                  
               <div className="mb-6">
-                <p className="text-gray-600 text-base leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed">
                   {showFullDescription || course.description.length <= DESCRIPTION_LIMIT
                     ? course.description
                     : `${course.description.substring(0, DESCRIPTION_LIMIT)}...`
                   }
                 </p>
                 {course.description.length > DESCRIPTION_LIMIT && (
-                  <button
+                    <button
                     onClick={() => setShowFullDescription(!showFullDescription)}
                     className="text-[#85ea10] hover:text-[#7dd30f] font-semibold text-sm mt-2 transition-colors"
                   >
                     {showFullDescription ? 'Leer menos' : 'Leer más'}
-                  </button>
+                    </button>
                 )}
               </div>
 
 
               {/* Course Details & Purchase - Unified Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
                 {/* Course Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Duración:</span>
-                    <span className="text-sm font-semibold text-gray-900">{course.duration || '40 min'}</span>
-                  </div>
-                  
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Duración:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{course.duration || '40 min'}</span>
+                </div>
+                
                   <div className="flex items-center space-x-2">
                     <Star className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Calificación:</span>
-                    <span className="text-sm font-semibold text-gray-900 flex items-center space-x-1">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Calificación:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center space-x-1">
                       <Star className="w-3 h-3 text-yellow-400 fill-current" />
                       <span>{course.rating || '4.8'}</span>
                     </span>
-                  </div>
-                  
+                </div>
+                
                   <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Estudiantes:</span>
-                    <span className="text-sm font-semibold text-gray-900">{course.students_count?.toLocaleString() || '0'}</span>
-                  </div>
-                  
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Estudiantes:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{course.students_count?.toLocaleString() || '0'}</span>
+                </div>
+                
                   <div className="flex items-center space-x-2">
                     <Play className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Clases:</span>
-                    <span className="text-sm font-semibold text-gray-900">{lessons.length}</span>
-                  </div>
-                  
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Clases:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{lessons.length}</span>
+                </div>
+                
                   <div className="flex items-center space-x-2">
                     <Zap className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Calorías:</span>
-                    <span className="text-sm font-semibold text-gray-900">{course.calories_burned ? `${course.calories_burned}+ quemadas` : '500+ quemadas'}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Calorías:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{course.calories_burned ? `${course.calories_burned}+ quemadas` : '500+ quemadas'}</span>
+              </div>
+
+                    <div className="flex items-center space-x-2">
                     <Tag className="w-4 h-4 text-[#85ea10]" />
-                    <span className="text-sm text-gray-600">Enfoque:</span>
-                    <span className="text-sm font-semibold text-gray-900">{getCategoryName(course.category)}</span>
-                  </div>
-                </div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Enfoque:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{getCategoryName(course.category)}</span>
+                      </div>
+                        </div>
 
                 {/* Purchase Section */}
-                <div className="border-t border-gray-200 pt-6">
+                <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
                   {course.original_price && course.original_price > course.price ? (
                     <div className="space-y-4">
                       {/* Pricing - Clean Layout */}
                       <div className="text-center space-y-2">
-                        <div className="text-2xl text-gray-500 line-through">
+                        <div className="text-2xl text-gray-500 dark:text-gray-400 line-through">
                           ${course.original_price.toLocaleString('es-CO')}
-                        </div>
-                        <div className="text-4xl font-black text-gray-900">
+                    </div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white">
                           ${finalPrice.toLocaleString('es-CO')}
-                        </div>
+                      </div>
                         <div className="text-lg text-[#85ea10] font-bold">
                           ¡Ahorras ${(course.original_price - finalPrice).toLocaleString('es-CO')}!
                         </div>
-                      </div>
-                      
+                  </div>
+
                       {/* Purchase Button */}
-                      <button
+                    <button
                         onClick={handlePurchase}
                         className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-black py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
-                      >
-                        <ShoppingCart className="w-5 h-5" />
+                    >
+                      <ShoppingCart className="w-5 h-5" />
                         <span>¡COMPRAR AHORA!</span>
-                      </button>
+                    </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {/* Pricing - Clean Layout */}
                       <div className="text-center space-y-2">
-                        <div className="text-4xl font-black text-gray-900">
+                        <div className="text-4xl font-black text-gray-900 dark:text-white">
                           ${course.price.toLocaleString('es-CO')}
-                        </div>
-                        <div className="text-sm text-gray-500">
+                  </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           Pago único • Sin suscripciones
-                        </div>
-                      </div>
+                </div>
+                    </div>
                       
                       {/* Purchase Button */}
-                      <button
+                        <button
                         onClick={handlePurchase}
                         className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-black py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
-                      >
+                        >
                         <ShoppingCart className="w-5 h-5" />
                         <span>¡COMPRAR AHORA!</span>
-                      </button>
+                        </button>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
           </div>
 
           {/* Sidebar - Lessons and Info */}
           <div className="lg:col-span-1 space-y-6">
             {/* Classes List */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex-1 flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden flex-1 flex flex-col">
               {/* Info Banner */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 p-4 flex-shrink-0">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-400 p-4 flex-shrink-0">
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
@@ -483,21 +473,21 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-green-800 mb-1">
+                    <h4 className="text-sm font-bold text-green-800 dark:text-green-300 mb-1">
                       💪 CÓMO FUNCIONA TU CURSO
                     </h4>
-                    <p className="text-xs text-green-700 leading-relaxed">
+                    <p className="text-xs text-green-700 dark:text-green-400 leading-relaxed">
                       Al comprar, eliges cuándo empezar. Cada día se desbloquea una nueva clase. ¡Mantén la constancia para no perderte ninguna!
                     </p>
                   </div>
-                </div>
               </div>
+            </div>
 
-              <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-600 flex-shrink-0">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
                   Contenido del Curso
                 </h3>
-              </div>
+          </div>
 
               <div className="flex-1 overflow-y-auto">
                 {lessons.length > 0 ? (
@@ -521,12 +511,12 @@ export default function CourseDetailPage() {
                       return (
                         <div key={lesson.id} className={`p-4 transition-colors ${
                           classStatus === 'available' 
-                            ? 'hover:bg-green-50 cursor-pointer' 
-                            : 'hover:bg-gray-50 cursor-pointer'
+                            ? 'hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer' 
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
                         }`}>
                           <div className="flex items-start space-x-3">
                             {/* Class Image */}
-                            <div className="flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-gray-200">
+                            <div className="flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
                               <img
                                 src={lesson.preview_image || '/images/lessons/placeholder.jpg'}
                                 alt={lesson.title}
@@ -537,7 +527,7 @@ export default function CourseDetailPage() {
                                   e.currentTarget.src = '/images/course-placeholder.jpg';
                                 }}
                               />
-                            </div>
+                                </div>
                             
                             <div className="flex-1 min-w-0">
                               {/* Class Number and Title */}
@@ -548,42 +538,42 @@ export default function CourseDetailPage() {
                                     : 'bg-gray-400 text-white'
                                 }`}>
                                   {lesson.lesson_number}
-                                </div>
+                            </div>
                                 <h4 className={`text-sm font-semibold line-clamp-2 flex-1 ${
-                                  classStatus === 'available' ? 'text-gray-900' : 'text-gray-600'
+                                  classStatus === 'available' ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                                 }`}>
                                   {lesson.title}
                                 </h4>
-                              </div>
-                              
+                        </div>
+
                               {lesson.description && (
                                 <p className={`text-xs mb-2 line-clamp-2 ml-7 ${
-                                  classStatus === 'available' ? 'text-gray-600' : 'text-gray-400'
+                                  classStatus === 'available' ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
                                 }`}>
-                                  {lesson.description}
-                                </p>
+                                {lesson.description}
+                              </p>
                               )}
                               
                               {/* Status Text */}
                               <div className="mb-2 ml-7">
                                 {classStatus === 'available' && (
-                                  <span className="text-xs text-green-600 font-medium">✅ Disponible hoy</span>
+                                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">✅ Disponible hoy</span>
                                 )}
                                 {classStatus === 'tomorrow' && (
-                                  <span className="text-xs text-gray-500 font-medium">⏰ Disponible mañana</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">⏰ Disponible mañana</span>
                                 )}
                                 {classStatus === 'upcoming' && (
-                                  <span className="text-xs text-gray-500 font-medium">📅 Próximamente</span>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center space-x-3 text-xs text-gray-500 ml-7">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">📅 Próximamente</span>
+                )}
+              </div>
+
+                              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 ml-7">
                                 <div className="flex items-center space-x-1">
                                   <Clock className="w-3 h-3" />
                                   <span>{lesson.duration_minutes} min</span>
                                 </div>
                                 {lesson.is_preview && classStatus === 'available' && (
-                                  <div className="flex items-center space-x-1 text-green-600">
+                                  <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
                                     <Play className="w-3 h-3" />
                                     <span>Preview</span>
                                   </div>
@@ -596,17 +586,28 @@ export default function CourseDetailPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                     <p className="text-sm">No hay clases disponibles</p>
                   </div>
                 )}
               </div>
             </div>
-
-
           </div>
         </div>
       </div>
+
+      {/* Widget de pago de Wompi */}
+      {course && session?.user && (
+        <WompiPaymentWidget
+          isOpen={showPaymentWidget}
+          onClose={() => setShowPaymentWidget(false)}
+          course={course}
+          customerEmail={(session.user as any).email}
+          customerName={(session.user as any).name || ''}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+        />
+      )}
     </div>
   );
 }

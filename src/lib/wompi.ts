@@ -98,15 +98,48 @@ class WompiService {
   }
 
   /**
-   * Crear una transacción en Wompi
+   * Obtener fuentes de pago disponibles
+   */
+  async getPaymentSources(): Promise<any> {
+    try {
+      console.log('🔍 Wompi: Obteniendo fuentes de pago...');
+      
+      const response = await fetch(`${this.config.baseUrl}/payment_sources`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.privateKey}`
+        }
+      });
+
+      console.log('🔍 Wompi: Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log('❌ Wompi: Error response:', JSON.stringify(errorData, null, 2));
+        throw new Error(`Wompi API Error: ${errorData.error?.reason || errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Wompi payment sources:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error getting Wompi payment sources:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crear acceptance token en Wompi
    */
   async createTransaction(order: WompiOrder): Promise<WompiResponse> {
     try {
-      console.log('🔍 Wompi: Creando transacción...');
+      console.log('🔍 Wompi: Creando acceptance token...');
       console.log('🔍 Wompi: URL:', `${this.config.baseUrl}/transactions`);
       console.log('🔍 Wompi: Order data:', order);
       console.log('🔍 Wompi: Private key (first 10 chars):', this.config.privateKey.substring(0, 10) + '...');
       
+      console.log('🔍 Order to wompy: Body:', JSON.stringify(order, null, 2));
       const response = await fetch(`${this.config.baseUrl}/transactions`, {
         method: 'POST',
         headers: {
@@ -119,10 +152,11 @@ class WompiService {
       console.log('🔍 Wompi: Response status:', response.status);
       console.log('🔍 Wompi: Response ok:', response.ok);
 
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.log('❌ Wompi: Error response:', errorData);
-        throw new Error(`Wompi API Error: ${errorData.error?.message || 'Unknown error'}`);
+        console.log('❌ Wompi: Error response:', JSON.stringify(errorData, null, 2));
+        throw new Error(`Wompi API Error: ${errorData.error?.reason || errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
