@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { X, CreditCard, Smartphone, Building } from 'lucide-react';
+import { useState } from 'react';
+import { X, CreditCard, Smartphone, Building, CalendarDays, Flame, Infinity, Dumbbell } from 'lucide-react';
 
 interface WompiPaymentWidgetProps {
   isOpen: boolean;
@@ -11,13 +11,18 @@ interface WompiPaymentWidgetProps {
     title: string;
     price: number;
     original_price?: number;
+    duration_days?: number;
+    description?: string;
+    short_description?: string;
+    calories_burned?: number;
+    level?: string;
+    preview_image?: string;
   };
   customerEmail: string;
   customerName: string;
   onSuccess: (transactionId: string) => void;
   onError: (error: string) => void;
 }
-
 
 export default function WompiPaymentWidget({
   isOpen,
@@ -28,9 +33,7 @@ export default function WompiPaymentWidget({
   onSuccess,
   onError
 }: WompiPaymentWidgetProps) {
-  const widgetRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [widgetLoaded, setWidgetLoaded] = useState(false);
 
   // Calcular precios
   const finalPrice = course.price;
@@ -38,185 +41,24 @@ export default function WompiPaymentWidget({
   const discountAmount = originalPrice - finalPrice;
   const discountPercentage = originalPrice > finalPrice ? Math.round((discountAmount / originalPrice) * 100) : 0;
 
-  useEffect(() => {
-    if (isOpen && !widgetLoaded) {
-      loadWompiWidget();
-    }
-  }, [isOpen, widgetLoaded]);
-
-  // Efecto para inicializar el widget de Wompi cuando esté listo
-  useEffect(() => {
-    if (widgetLoaded && isOpen) {
-      console.log('🔍 useEffect ejecutándose - widgetLoaded:', widgetLoaded, 'isOpen:', isOpen);
-      
-      const initWidgetCheckout = async () => {
-        console.log('🔍 initWidgetCheckout ejecutándose...');
-        const container = document.getElementById('wompi-widget-container');
-        console.log('🔍 Container encontrado:', !!container);
-        console.log('🔍 window.WidgetCheckout disponible:', !!(window as any).WidgetCheckout);
-        console.log('🔍 Todas las propiedades de window que contienen "widget" o "wompi":', 
-          Object.keys(window).filter(key => key.toLowerCase().includes('widget') || key.toLowerCase().includes('wompi')));
-        
-        if (container && (window as any).WidgetCheckout) {
-          console.log('🎬 Inicializando WidgetCheckout...');
-          console.log('🔍 Datos del checkout:', {
-            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-            amountInCents: Math.round(finalPrice * 100),
-            currency: 'COP',
-            customerEmail: customerEmail,
-            customerName: customerName
-          });
-          
-          try {
-            // Generar referencia única
-            const reference = `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const amountInCents = Math.round(finalPrice * 100);
-            
-            // Implementar widget personalizado con firma de integridad
-            console.log('🎬 Creando widget personalizado de Wompi con firma de integridad...');
-            
-            // Generar firma de integridad desde el backend
-            const signatureResponse = await fetch('/api/payments/generate-signature', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                reference: reference,
-                amountInCents: amountInCents,
-                currency: 'COP'
-              })
-            });
-            
-            const signatureData = await signatureResponse.json();
-            console.log('🔐 Firma de integridad generada:', signatureData);
-            
-            // Verificar que la publicKey esté disponible
-            const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
-            console.log('🔑 Public Key:', publicKey);
-            console.log('🔑 Public Key length:', publicKey.length);
-            
-            if (!publicKey) {
-              throw new Error('Public key not configured');
-            }
-            
-            // Crear el checkout usando WidgetCheckout con firma de integridad
-            const checkout = new (window as any).WidgetCheckout({
-              currency: 'COP',
-              amountInCents: amountInCents,
-              reference: reference,
-              publicKey: publicKey,
-              signature: {
-                integrity: signatureData.checksum
-              },
-              redirectUrl: `${window.location.origin}/payment/result`,
-              customerData: {
-                email: customerEmail,
-                fullName: customerName,
-                phoneNumber: '3001234567',
-                phoneNumberPrefix: '+57'
-              }
-            });
-            
-            // Abrir el widget con callback según la documentación
-            checkout.open(function (result: any) {
-              console.log('✅ Resultado del widget:', result);
-              if (result.transaction) {
-                onSuccess(result.transaction.id);
-              }
-            });
-            
-            console.log('✅ WidgetCheckout creado y abierto correctamente con firma de integridad');
-          } catch (error) {
-            console.error('❌ Error inicializando WidgetCheckout:', error);
-          }
-        } else {
-          console.log('⏳ Esperando a que el contenedor esté listo...');
-          console.log('🔍 Estado actual:', {
-            hasContainer: !!container,
-            hasWidgetCheckout: !!(window as any).WidgetCheckout
-          });
-          setTimeout(() => initWidgetCheckout(), 500);
-        }
-      };
-
-      // Esperar un poco para que el DOM se actualice
-      console.log('⏳ Esperando 1 segundo antes de inicializar...');
-      setTimeout(() => initWidgetCheckout(), 1000);
-    }
-  }, [widgetLoaded, isOpen, finalPrice, customerEmail, customerName, onSuccess, onError]);
-
-  const loadWompiWidget = async () => {
-    try {
-      setIsLoading(true);
-      console.log('🔍 Iniciando carga del widget de Wompi...');
-      console.log('🔍 Public Key:', process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY);
-      console.log('🔍 Amount:', finalPrice);
-      console.log('🔍 Customer Email:', customerEmail);
-      
-      // Cargar el script de Wompi Widget (widget.js SÍ existe)
-      if (!document.querySelector('script[src="https://checkout.wompi.co/widget.js"]')) {
-        console.log('📥 Cargando script de Wompi Widget...');
-        
-        const script = document.createElement('script');
-        script.src = 'https://checkout.wompi.co/widget.js';
-        script.async = true;
-        script.type = 'text/javascript';
-        
-        console.log('📥 Script creado:', script);
-        console.log('📥 Script src:', script.src);
-        
-        document.head.appendChild(script);
-        
-        console.log('📥 Script agregado al DOM');
-        console.log('📥 Script en el DOM:', document.querySelector('script[src="https://checkout.wompi.co/widget.js"]'));
-        
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            console.error('⏰ Timeout cargando script de Wompi (10 segundos)');
-            reject(new Error('Timeout loading Wompi script'));
-          }, 10000);
-          
-          script.onload = () => {
-            clearTimeout(timeout);
-            console.log('✅ Script de Wompi Widget cargado exitosamente');
-            console.log('🔍 Verificando window.WidgetCheckout después del onload:', !!window.WidgetCheckout);
-            console.log('🔍 Todas las propiedades de window después del onload:', 
-              Object.keys(window).filter(key => key.toLowerCase().includes('widget') || key.toLowerCase().includes('wompi')));
-            resolve(true);
-          };
-          
-          script.onerror = (error) => {
-            clearTimeout(timeout);
-            console.error('❌ Error cargando script de Wompi:', error);
-            console.error('❌ Detalles del error:', error);
-            console.error('❌ Script src que falló:', script.src);
-            reject(error);
-          };
-        });
-      } else {
-        console.log('✅ Script de Wompi Widget ya está cargado');
-        console.log('🔍 Verificando window.WidgetCheckout (ya cargado):', !!window.WidgetCheckout);
-      }
-
-      // Esperar un poco para que el script se procese
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log('✅ Widget de Wompi configurado exitosamente');
-      setWidgetLoaded(true);
-    } catch (error) {
-      console.error('❌ Error cargando widget de Wompi:', error);
-      onError('Error cargando el widget de pago');
-    } finally {
-      setIsLoading(false);
-    }
+  // Función para manejar el clic del botón de pago
+  const handlePaymentClick = async () => {
+    setIsLoading(true);
+    
+    // Guardar datos en localStorage para evitar URL muy larga
+    localStorage.setItem('checkout_course', JSON.stringify(course));
+    localStorage.setItem('checkout_email', customerEmail);
+    localStorage.setItem('checkout_name', customerName);
+    
+    // Redirigir a la vista de pago dedicada
+    window.location.href = '/payment/checkout';
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
           <div>
@@ -231,97 +73,167 @@ export default function WompiPaymentWidget({
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Información del curso */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-600">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+              Detalles del curso
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                {course.preview_image && (
+                  <img 
+                    src={course.preview_image} 
+                    alt={course.title}
+                    className="w-16 h-16 rounded-lg object-cover"
+                  />
+                )}
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                    {course.title}
+                  </h4>
+                  {course.short_description && (
+                    <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                      {course.short_description}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {course.duration_days && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <CalendarDays className="w-4 h-4 text-blue-600" />
+                      <span className="text-gray-600 dark:text-gray-400">Duración:</span>
+                    </div>
+                    <span className="text-gray-900 dark:text-white font-medium">
+                      {course.duration_days} días
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Dumbbell className="w-4 h-4 text-purple-600" />
+                    <span className="text-gray-600 dark:text-gray-400">Modalidad:</span>
+                  </div>
+                  <span className="text-gray-900 dark:text-white font-medium">
+                    HIIT + Pesas
+                  </span>
+                </div>
+                {course.calories_burned && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Flame className="w-4 h-4 text-red-600" />
+                      <span className="text-gray-600 dark:text-gray-400">Calorías quemadas:</span>
+                    </div>
+                    <span className="text-gray-900 dark:text-white font-medium">
+                      {course.calories_burned} cal/día
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Infinity className="w-4 h-4 text-orange-600" />
+                    <span className="text-gray-600 dark:text-gray-400">Acceso:</span>
+                  </div>
+                  <span className="text-orange-600 font-medium">Limitado</span>
+                </div>
+              </div>
+              
+              {/* Información del programa */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mt-3">
+                <div className="flex items-start space-x-2">
+                  <CalendarDays className="w-4 h-4 text-blue-600 mt-0.5" />
+                  <div>
+                    <h5 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Programa de 5 días hábiles
+                    </h5>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Las clases se te habilitan día a día para ayudarte en tu disciplina. 
+                      Recibirás un calendario personalizado con horarios de entrenamiento 
+                      y seguimiento de progreso. Una vez termine el curso, 
+                      tendrás que adquirir otro para continuar tu transformación.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Resumen del pago */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
               Resumen del pago
             </h3>
             <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Curso:</span>
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {course.title}
+                </span>
+              </div>
+              
               {originalPrice > finalPrice && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Precio original:</span>
                   <span className="text-gray-500 line-through">${originalPrice.toLocaleString('es-CO')}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Descuento:</span>
-                <span className="text-green-600 font-semibold">-{discountPercentage}%</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold border-t border-gray-200 dark:border-gray-600 pt-2">
-                <span className="text-gray-900 dark:text-white">Total a pagar:</span>
-                <span className="text-green-600">${finalPrice.toLocaleString('es-CO')}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Métodos de pago disponibles */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 dark:text-white">
-              Métodos de pago disponibles
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <CreditCard className="w-6 h-6 text-blue-600" />
-                <span className="ml-2 text-sm font-medium text-blue-700 dark:text-blue-300">
-                  Tarjeta
-                </span>
-              </div>
-              <div className="flex items-center justify-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <Smartphone className="w-6 h-6 text-green-600" />
-                <span className="ml-2 text-sm font-medium text-green-700 dark:text-green-300">
-                  PSE
-                </span>
-              </div>
-              <div className="flex items-center justify-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                <Building className="w-6 h-6 text-purple-600" />
-                <span className="ml-2 text-sm font-medium text-purple-700 dark:text-purple-300">
-                  Bancolombia
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Widget de Wompi */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 dark:text-white">
-              Selecciona tu método de pago
-            </h3>
-            <div className="min-h-[400px] border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Cargando métodos de pago...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-full p-4">
-                  <div 
-                    id="wompi-widget-container"
-                    data-public-key={process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}
-                    data-currency="COP"
-                    data-amount-in-cents={Math.round(finalPrice * 100)}
-                    data-reference={`ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}
-                    data-redirect-url={`${process.env.NEXTAUTH_URL}/payment/result`}
-                    data-customer-data-email={customerEmail}
-                    data-customer-data-full-name={customerName}
-                    className="w-full h-full"
-                  />
+              
+              {discountPercentage > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Descuento:</span>
+                  <span className="text-green-600 font-semibold">-{discountPercentage}%</span>
                 </div>
               )}
+              
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-2">
+                <div className="flex justify-between text-lg font-bold">
+                  <span className="text-gray-900 dark:text-white">Total:</span>
+                  <span className="text-[#85ea10]">${finalPrice.toLocaleString('es-CO')} COP</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Botón de pago */}
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                ¿Listo para comenzar tu transformación?
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Haz clic en el botón para proceder con el pago seguro
+              </p>
+              
+              <button
+                onClick={handlePaymentClick}
+                disabled={isLoading}
+                className="w-full bg-[#85ea10] hover:bg-[#7dd30f] disabled:bg-gray-400 disabled:cursor-not-allowed text-black font-bold py-4 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center space-x-3 shadow-lg"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-6 h-6" />
+                    <span>Ir a Pagar - ${finalPrice.toLocaleString('es-CO')}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
           {/* Información de seguridad */}
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
@@ -335,8 +247,8 @@ export default function WompiPaymentWidget({
                   Pago 100% Seguro
                 </h4>
                 <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                  Tus datos están protegidos con encriptación SSL. Procesamos pagos a través de Wompi, 
-                  la plataforma de pagos más confiable de Colombia.
+                  Tus datos están protegidos con encriptación SSL. 
+                  Procesamos pagos de forma segura y confiable.
                 </p>
               </div>
             </div>
