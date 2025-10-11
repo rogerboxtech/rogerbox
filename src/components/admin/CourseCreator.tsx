@@ -36,7 +36,7 @@ interface CourseData {
   category: string;
   duration_days: number | null;
   calories_burned: number | null;
-  intro_video_url: string;
+  mux_playback_id: string;
   level: string;
   is_published: boolean;
   // include_iva: boolean; // Temporalmente deshabilitado
@@ -92,7 +92,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
     category: '',
     duration_days: null,
     calories_burned: null,
-    intro_video_url: '',
+    mux_playback_id: '',
     level: 'beginner',
     is_published: false,
     // include_iva: false, // Temporalmente deshabilitado
@@ -135,7 +135,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
         category: categoryValue,
         duration_days: courseToEdit.duration_days !== undefined ? courseToEdit.duration_days : null,
         calories_burned: courseToEdit.calories_burned !== undefined ? courseToEdit.calories_burned : null,
-        intro_video_url: courseToEdit.intro_video_url || '',
+        mux_playback_id: courseToEdit.mux_playback_id || '',
         level: courseToEdit.level || 'beginner',
         is_published: courseToEdit.is_published !== undefined ? courseToEdit.is_published : false,
         // include_iva: courseToEdit.include_iva !== undefined ? courseToEdit.include_iva : false, // Temporalmente deshabilitado
@@ -447,7 +447,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
         category: courseData.category || null,
         duration_days: courseData.duration_days || 30,
         calories_burned: courseData.calories_burned || 0,
-        intro_video_url: courseData.intro_video_url || '',
+        mux_playback_id: courseData.mux_playback_id || '',
         level: courseData.level || 'beginner',
         is_published: courseData.is_published || false
         // Temporalmente sin IVA hasta resolver problema de caché de Supabase
@@ -925,21 +925,24 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
                 </div>
               </div>
 
-              {/* URL del video introductorio */}
+              {/* Mux Playback ID del video introductorio */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  URL del Video Introductorio
+                  Mux Playback ID del Video Introductorio
                 </label>
                 <div className="relative">
                   <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="url"
-                    value={courseData.intro_video_url}
-                    onChange={(e) => setCourseData(prev => ({ ...prev, intro_video_url: e.target.value }))}
+                    type="text"
+                    value={courseData.mux_playback_id}
+                    onChange={(e) => setCourseData(prev => ({ ...prev, mux_playback_id: e.target.value }))}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="https://youtube.com/watch?v=..."
+                    placeholder="8wRPxlLcp01JrCKhEsyq00BPSrah1qkRY01aOvr01p4suEU"
                   />
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Ingresa el Playback ID de Mux (no la URL completa)
+                </p>
               </div>
 
               {/* Preview Image */}

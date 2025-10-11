@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { Star, Clock, Users, Play, ShoppingCart, Heart, ArrowLeft, CheckCircle, Zap, Target, Award, Shield, Tag } from 'lucide-react';
 import WompiPaymentWidget from '@/components/WompiPaymentWidget';
+import RogerBoxMuxPlayer from '@/components/RogerBoxMuxPlayer';
 
 interface Course {
   id: string;
@@ -28,6 +29,7 @@ interface Course {
   created_at?: string;
   slug?: string;
   calories_burned?: number;
+  mux_playback_id?: string;
 }
 
 interface Lesson {
@@ -310,32 +312,27 @@ export default function CourseDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - Video and Course Info */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Video Section */}
-            <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-lg">
-              <img
-                src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'}
-                      alt={course.title}
-                className="w-full h-64 sm:h-80 lg:h-96 object-cover"
-              />
-              
-              {/* Video Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              
-              {/* Play Button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button className="w-16 h-16 bg-[#85ea10] rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                  <Play className="w-6 h-6 text-black ml-1" />
-                      </button>
-                    </div>
+             {/* Video Section */}
+             <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-lg">
+               <div className="relative w-full aspect-video">
+                 {/* Video de Mux - Playback ID dinámico con HD forzado */}
+                 <iframe
+                   src={`https://player.mux.com/${course.mux_playback_id || '8wRPxlLcp01JrCKhEsyq00BPSrah1qkRY01aOvr01p4suEU'}?preload=auto&autoplay=muted&default-quality=1080p&quality=1080p&max-resolution=1080p`}
+                   style={{ width: '100%', height: '100%', border: 'none' }}
+                   allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                   allowFullScreen
+                   className="w-full h-full"
+                 />
+                 
+                 {/* Logo RG - Esquina superior derecha */}
+                 <div className="absolute top-3 right-3 z-30 pointer-events-none">
+                   <span className="font-black text-xl tracking-wide drop-shadow-md opacity-70">
+                     <span className="text-white">R</span><span className="text-[#85ea10]">G</span>
+                   </span>
+                 </div>
+               </div>
+             </div>
 
-              {/* RogerBox Text - TV Channel Style */}
-              <div className="absolute bottom-4 right-4">
-                <span className="text-white/50 font-bold text-sm tracking-wide drop-shadow-md">
-                  ROGERBOX
-                </span>
-                    </div>
-
-            </div>
 
             {/* Course Title and Description */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">

@@ -46,15 +46,21 @@ export default function HomePage() {
   // Usar el hook ULTRA RÁPIDO
   const { courses, loading: loadingCourses, error: coursesError } = useUnifiedCourses();
 
-  // Si el usuario está autenticado, redirigir al dashboard
-  if (status === 'authenticated') {
-    router.push('/dashboard');
-    return <QuickLoading message="Cargando..." duration={3000} />;
-  }
+  // Redirigir al dashboard si el usuario está autenticado
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard');
+    }
+  }, [status, router]);
 
   // Si está cargando la sesión, mostrar loading
   if (status === 'loading') {
     return <QuickLoading message="Cargando..." duration={3000} />;
+  }
+
+  // Si el usuario está autenticado, mostrar loading mientras redirige
+  if (status === 'authenticated') {
+    return <QuickLoading message="Redirigiendo al dashboard..." duration={3000} />;
   }
 
 

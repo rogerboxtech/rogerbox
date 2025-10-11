@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@auth/supabase-adapter": "^1.10.0",
+    "@mux/mux-player": "^3.6.1",
+    "@mux/mux-player-react": "^3.6.1",
     "@supabase/supabase-js": "^2.75.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

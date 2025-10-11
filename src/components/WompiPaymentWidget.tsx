@@ -52,41 +52,115 @@ export default function WompiPaymentWidget({
   const loadWompiWidget = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 Iniciando carga del widget de Wompi...');
+      console.log('🔍 Public Key:', process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY);
+      console.log('🔍 Amount:', finalPrice);
+      console.log('🔍 Customer Email:', customerEmail);
+      
+      // Esperar a que el DOM esté listo
+      console.log('⏳ Esperando a que el DOM esté listo...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('🔍 widgetRef.current después del timeout:', widgetRef.current);
 
       // Cargar el script de Wompi si no está cargado
       if (!window.WompiWidget) {
+        console.log('📥 Cargando script de Wompi...');
         const script = document.createElement('script');
         script.src = 'https://checkout.wompi.co/widget.js';
         script.async = true;
+        script.crossOrigin = 'anonymous';
         document.head.appendChild(script);
+        
+        // Verificar si el script se carga correctamente
+        console.log('📥 Script agregado al DOM:', script);
 
         await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
+          script.onload = () => {
+            console.log('✅ Script de Wompi cargado exitosamente');
+            console.log('🔍 Verificando window después de cargar script...');
+            console.log('🔍 window.WompiWidget:', window.WompiWidget);
+            console.log('🔍 window.Wompi:', window.Wompi);
+            console.log('🔍 Todas las propiedades de window que contienen "wompi":', 
+              Object.keys(window).filter(key => key.toLowerCase().includes('wompi')));
+            
+            // Esperar un poco más para que se defina window.WompiWidget
+            setTimeout(() => {
+              console.log('🔍 Verificando window.WompiWidget después del timeout...');
+              console.log('🔍 window.WompiWidget:', window.WompiWidget);
+              console.log('🔍 window.Wompi:', window.Wompi);
+              resolve(true);
+            }, 1000);
+          };
+          script.onerror = (error) => {
+            console.error('❌ Error cargando script de Wompi:', error);
+            console.error('❌ Detalles del error:', error);
+            reject(error);
+          };
         });
+      } else {
+        console.log('✅ Script de Wompi ya está cargado');
       }
+
+      // Esperar un poco más para asegurar que window.WompiWidget esté disponible
+      console.log('⏳ Esperando a que window.WompiWidget esté disponible...');
+      let attempts = 0;
+      while (!window.WompiWidget && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+        console.log(`🔍 Intento ${attempts}/10 - window.WompiWidget:`, !!window.WompiWidget);
+      }
+
+      // Debugging final
+      console.log('🔍 Estado final antes de crear widget:');
+      console.log('🔍 window.WompiWidget:', window.WompiWidget);
+      console.log('🔍 typeof window.WompiWidget:', typeof window.WompiWidget);
+      console.log('🔍 widgetRef.current:', widgetRef.current);
+      console.log('🔍 window object keys:', Object.keys(window).filter(key => key.toLowerCase().includes('wompi')));
 
       // Crear el widget
       if (window.WompiWidget && widgetRef.current) {
-        const widget = new window.WompiWidget({
-          container: widgetRef.current,
-          publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-          amount: Math.round(finalPrice * 100), // Convertir a centavos
-          currency: 'COP',
-          reference: `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          customerEmail: customerEmail,
-          customerName: customerName,
-          onSuccess: (transaction: any) => {
-            console.log('✅ Pago exitoso:', transaction);
-            onSuccess(transaction.id);
-          },
-          onError: (error: any) => {
-            console.error('❌ Error en el pago:', error);
-            onError(error.message || 'Error en el pago');
-          }
-        });
+        console.log('🎬 Creando widget de Wompi...');
+        console.log('🔍 Container element:', widgetRef.current);
+        
+        try {
+          const widget = new window.WompiWidget({
+            container: widgetRef.current,
+            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+            amount: Math.round(finalPrice * 100), // Convertir a centavos
+            currency: 'COP',
+            reference: `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            customerEmail: customerEmail,
+            customerName: customerName,
+            onSuccess: (transaction: any) => {
+              console.log('✅ Pago exitoso:', transaction);
+              onSuccess(transaction.id);
+            },
+            onError: (error: any) => {
+              console.error('❌ Error en el pago:', error);
+              onError(error.message || 'Error en el pago');
+            }
+          });
 
-        setWidgetLoaded(true);
+          console.log('✅ Widget de Wompi creado exitosamente');
+          setWidgetLoaded(true);
+        } catch (error) {
+          console.error('❌ Error al crear el widget:', error);
+          onError('Error al crear el widget de pago');
+        }
+      } else {
+        console.error('❌ No se puede crear el widget:', {
+          hasWompiWidget: !!window.WompiWidget,
+          hasContainer: !!widgetRef.current,
+          publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+          windowKeys: Object.keys(window).filter(key => key.toLowerCase().includes('wompi'))
+        });
+        
+        // Intentar con una alternativa
+        console.log('🔄 Intentando con window.Wompi...');
+        if (window.Wompi && widgetRef.current) {
+          console.log('✅ Encontrado window.Wompi, intentando crear widget...');
+          // Aquí podrías intentar con window.Wompi en lugar de window.WompiWidget
+        }
       }
     } catch (error) {
       console.error('❌ Error cargando widget de Wompi:', error);

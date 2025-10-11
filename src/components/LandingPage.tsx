@@ -266,7 +266,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                             className="w-full h-full object-cover rounded-2xl opacity-60"
                             autoPlay
                             loop
-                            muted
                             playsInline
                           >
                             <source src="/roger.mp4" type="video/mp4" />
