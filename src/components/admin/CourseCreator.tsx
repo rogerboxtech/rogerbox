@@ -144,8 +144,8 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
       
       console.log('🔍 CourseCreator - newCourseData establecido:', newCourseData);
       console.log('🔍 CourseCreator - category en newCourseData:', newCourseData.category);
-      console.log('🔍 CourseCreator - intro_video_url en newCourseData:', newCourseData.intro_video_url);
-      console.log('🔍 CourseCreator - courseToEdit.intro_video_url:', courseToEdit.intro_video_url);
+      console.log('🔍 CourseCreator - mux_playback_id en newCourseData:', newCourseData.mux_playback_id);
+      console.log('🔍 CourseCreator - courseToEdit.mux_playback_id:', courseToEdit.mux_playback_id);
       
       setCourseData(newCourseData);
       
@@ -455,7 +455,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
 
       console.log('Creando curso con datos:', courseDataToSubmit);
       console.log('Lecciones:', lessons);
-      console.log('🔍 intro_video_url en courseDataToSubmit:', courseDataToSubmit.intro_video_url);
+      console.log('🔍 mux_playback_id en courseDataToSubmit:', courseDataToSubmit.mux_playback_id);
 
       // Crear o actualizar el curso
       let course;

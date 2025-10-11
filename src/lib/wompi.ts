@@ -17,7 +17,8 @@ export interface WompiOrder {
   reference: string;
   payment_method: {
     type: string;
-    installments: number;
+    installments?: number;
+    phone_number?: string;
   };
   payment_source_id?: string;
   redirect_url?: string;
@@ -33,7 +34,8 @@ export interface WompiResponse {
     customer_email: string;
     payment_method: {
       type: string;
-      installments: number;
+      installments?: number;
+      phone_number?: string;
     };
     payment_source_id?: string;
     redirect_url?: string;

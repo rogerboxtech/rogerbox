@@ -18,11 +18,6 @@ interface WompiPaymentWidgetProps {
   onError: (error: string) => void;
 }
 
-declare global {
-  interface Window {
-    WompiWidget: any;
-  }
-}
 
 export default function WompiPaymentWidget({
   isOpen,
@@ -125,7 +120,7 @@ export default function WompiPaymentWidget({
         try {
           const widget = new window.WompiWidget({
             container: widgetRef.current,
-            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '',
             amount: Math.round(finalPrice * 100), // Convertir a centavos
             currency: 'COP',
             reference: `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
