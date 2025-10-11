@@ -1,18 +1,24 @@
-// Tipos para Wompi Widget
+// Tipos para Wompi Checkout (según documentación oficial)
 declare global {
   interface Window {
-    WompiWidget?: new (config: {
-      container: HTMLElement;
+    WidgetCheckout: new (config: {
       publicKey: string;
-      amount: number;
+      amountInCents: number;
       currency: string;
       reference: string;
-      customerEmail: string;
-      customerName: string;
-      onSuccess: (transaction: any) => void;
-      onError: (error: any) => void;
-    }) => any;
-    Wompi?: any;
+      redirectUrl?: string;
+      signature?: {
+        integrity: string;
+      };
+      customerData: {
+        email: string;
+        fullName?: string;
+        phoneNumber?: string;
+        phoneNumberPrefix?: string;
+      };
+    }) => {
+      open: (callback: (result: any) => void) => void;
+    };
   }
 }
 

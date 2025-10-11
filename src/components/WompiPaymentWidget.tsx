@@ -44,6 +44,108 @@ export default function WompiPaymentWidget({
     }
   }, [isOpen, widgetLoaded]);
 
+  // Efecto para inicializar el widget de Wompi cuando esté listo
+  useEffect(() => {
+    if (widgetLoaded && isOpen) {
+      console.log('🔍 useEffect ejecutándose - widgetLoaded:', widgetLoaded, 'isOpen:', isOpen);
+      
+      const initWidgetCheckout = async () => {
+        console.log('🔍 initWidgetCheckout ejecutándose...');
+        const container = document.getElementById('wompi-widget-container');
+        console.log('🔍 Container encontrado:', !!container);
+        console.log('🔍 window.WidgetCheckout disponible:', !!(window as any).WidgetCheckout);
+        console.log('🔍 Todas las propiedades de window que contienen "widget" o "wompi":', 
+          Object.keys(window).filter(key => key.toLowerCase().includes('widget') || key.toLowerCase().includes('wompi')));
+        
+        if (container && (window as any).WidgetCheckout) {
+          console.log('🎬 Inicializando WidgetCheckout...');
+          console.log('🔍 Datos del checkout:', {
+            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+            amountInCents: Math.round(finalPrice * 100),
+            currency: 'COP',
+            customerEmail: customerEmail,
+            customerName: customerName
+          });
+          
+          try {
+            // Generar referencia única
+            const reference = `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const amountInCents = Math.round(finalPrice * 100);
+            
+            // Implementar widget personalizado con firma de integridad
+            console.log('🎬 Creando widget personalizado de Wompi con firma de integridad...');
+            
+            // Generar firma de integridad desde el backend
+            const signatureResponse = await fetch('/api/payments/generate-signature', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                reference: reference,
+                amountInCents: amountInCents,
+                currency: 'COP'
+              })
+            });
+            
+            const signatureData = await signatureResponse.json();
+            console.log('🔐 Firma de integridad generada:', signatureData);
+            
+            // Verificar que la publicKey esté disponible
+            const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '';
+            console.log('🔑 Public Key:', publicKey);
+            console.log('🔑 Public Key length:', publicKey.length);
+            
+            if (!publicKey) {
+              throw new Error('Public key not configured');
+            }
+            
+            // Crear el checkout usando WidgetCheckout con firma de integridad
+            const checkout = new (window as any).WidgetCheckout({
+              currency: 'COP',
+              amountInCents: amountInCents,
+              reference: reference,
+              publicKey: publicKey,
+              signature: {
+                integrity: signatureData.checksum
+              },
+              redirectUrl: `${window.location.origin}/payment/result`,
+              customerData: {
+                email: customerEmail,
+                fullName: customerName,
+                phoneNumber: '3001234567',
+                phoneNumberPrefix: '+57'
+              }
+            });
+            
+            // Abrir el widget con callback según la documentación
+            checkout.open(function (result: any) {
+              console.log('✅ Resultado del widget:', result);
+              if (result.transaction) {
+                onSuccess(result.transaction.id);
+              }
+            });
+            
+            console.log('✅ WidgetCheckout creado y abierto correctamente con firma de integridad');
+          } catch (error) {
+            console.error('❌ Error inicializando WidgetCheckout:', error);
+          }
+        } else {
+          console.log('⏳ Esperando a que el contenedor esté listo...');
+          console.log('🔍 Estado actual:', {
+            hasContainer: !!container,
+            hasWidgetCheckout: !!(window as any).WidgetCheckout
+          });
+          setTimeout(() => initWidgetCheckout(), 500);
+        }
+      };
+
+      // Esperar un poco para que el DOM se actualice
+      console.log('⏳ Esperando 1 segundo antes de inicializar...');
+      setTimeout(() => initWidgetCheckout(), 1000);
+    }
+  }, [widgetLoaded, isOpen, finalPrice, customerEmail, customerName, onSuccess, onError]);
+
   const loadWompiWidget = async () => {
     try {
       setIsLoading(true);
@@ -52,111 +154,56 @@ export default function WompiPaymentWidget({
       console.log('🔍 Amount:', finalPrice);
       console.log('🔍 Customer Email:', customerEmail);
       
-      // Esperar a que el DOM esté listo
-      console.log('⏳ Esperando a que el DOM esté listo...');
-      await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('🔍 widgetRef.current después del timeout:', widgetRef.current);
-
-      // Cargar el script de Wompi si no está cargado
-      if (!window.WompiWidget) {
-        console.log('📥 Cargando script de Wompi...');
+      // Cargar el script de Wompi Widget (widget.js SÍ existe)
+      if (!document.querySelector('script[src="https://checkout.wompi.co/widget.js"]')) {
+        console.log('📥 Cargando script de Wompi Widget...');
+        
         const script = document.createElement('script');
         script.src = 'https://checkout.wompi.co/widget.js';
         script.async = true;
-        script.crossOrigin = 'anonymous';
+        script.type = 'text/javascript';
+        
+        console.log('📥 Script creado:', script);
+        console.log('📥 Script src:', script.src);
+        
         document.head.appendChild(script);
         
-        // Verificar si el script se carga correctamente
-        console.log('📥 Script agregado al DOM:', script);
-
+        console.log('📥 Script agregado al DOM');
+        console.log('📥 Script en el DOM:', document.querySelector('script[src="https://checkout.wompi.co/widget.js"]'));
+        
         await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            console.error('⏰ Timeout cargando script de Wompi (10 segundos)');
+            reject(new Error('Timeout loading Wompi script'));
+          }, 10000);
+          
           script.onload = () => {
-            console.log('✅ Script de Wompi cargado exitosamente');
-            console.log('🔍 Verificando window después de cargar script...');
-            console.log('🔍 window.WompiWidget:', window.WompiWidget);
-            console.log('🔍 window.Wompi:', window.Wompi);
-            console.log('🔍 Todas las propiedades de window que contienen "wompi":', 
-              Object.keys(window).filter(key => key.toLowerCase().includes('wompi')));
-            
-            // Esperar un poco más para que se defina window.WompiWidget
-            setTimeout(() => {
-              console.log('🔍 Verificando window.WompiWidget después del timeout...');
-              console.log('🔍 window.WompiWidget:', window.WompiWidget);
-              console.log('🔍 window.Wompi:', window.Wompi);
-              resolve(true);
-            }, 1000);
+            clearTimeout(timeout);
+            console.log('✅ Script de Wompi Widget cargado exitosamente');
+            console.log('🔍 Verificando window.WidgetCheckout después del onload:', !!window.WidgetCheckout);
+            console.log('🔍 Todas las propiedades de window después del onload:', 
+              Object.keys(window).filter(key => key.toLowerCase().includes('widget') || key.toLowerCase().includes('wompi')));
+            resolve(true);
           };
+          
           script.onerror = (error) => {
+            clearTimeout(timeout);
             console.error('❌ Error cargando script de Wompi:', error);
             console.error('❌ Detalles del error:', error);
+            console.error('❌ Script src que falló:', script.src);
             reject(error);
           };
         });
       } else {
-        console.log('✅ Script de Wompi ya está cargado');
+        console.log('✅ Script de Wompi Widget ya está cargado');
+        console.log('🔍 Verificando window.WidgetCheckout (ya cargado):', !!window.WidgetCheckout);
       }
 
-      // Esperar un poco más para asegurar que window.WompiWidget esté disponible
-      console.log('⏳ Esperando a que window.WompiWidget esté disponible...');
-      let attempts = 0;
-      while (!window.WompiWidget && attempts < 10) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-        console.log(`🔍 Intento ${attempts}/10 - window.WompiWidget:`, !!window.WompiWidget);
-      }
+      // Esperar un poco para que el script se procese
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Debugging final
-      console.log('🔍 Estado final antes de crear widget:');
-      console.log('🔍 window.WompiWidget:', window.WompiWidget);
-      console.log('🔍 typeof window.WompiWidget:', typeof window.WompiWidget);
-      console.log('🔍 widgetRef.current:', widgetRef.current);
-      console.log('🔍 window object keys:', Object.keys(window).filter(key => key.toLowerCase().includes('wompi')));
-
-      // Crear el widget
-      if (window.WompiWidget && widgetRef.current) {
-        console.log('🎬 Creando widget de Wompi...');
-        console.log('🔍 Container element:', widgetRef.current);
-        
-        try {
-          const widget = new window.WompiWidget({
-            container: widgetRef.current,
-            publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || '',
-            amount: Math.round(finalPrice * 100), // Convertir a centavos
-            currency: 'COP',
-            reference: `ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            customerEmail: customerEmail,
-            customerName: customerName,
-            onSuccess: (transaction: any) => {
-              console.log('✅ Pago exitoso:', transaction);
-              onSuccess(transaction.id);
-            },
-            onError: (error: any) => {
-              console.error('❌ Error en el pago:', error);
-              onError(error.message || 'Error en el pago');
-            }
-          });
-
-          console.log('✅ Widget de Wompi creado exitosamente');
-          setWidgetLoaded(true);
-        } catch (error) {
-          console.error('❌ Error al crear el widget:', error);
-          onError('Error al crear el widget de pago');
-        }
-      } else {
-        console.error('❌ No se puede crear el widget:', {
-          hasWompiWidget: !!window.WompiWidget,
-          hasContainer: !!widgetRef.current,
-          publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
-          windowKeys: Object.keys(window).filter(key => key.toLowerCase().includes('wompi'))
-        });
-        
-        // Intentar con una alternativa
-        console.log('🔄 Intentando con window.Wompi...');
-        if (window.Wompi && widgetRef.current) {
-          console.log('✅ Encontrado window.Wompi, intentando crear widget...');
-          // Aquí podrías intentar con window.Wompi en lugar de window.WompiWidget
-        }
-      }
+      console.log('✅ Widget de Wompi configurado exitosamente');
+      setWidgetLoaded(true);
     } catch (error) {
       console.error('❌ Error cargando widget de Wompi:', error);
       onError('Error cargando el widget de pago');
@@ -256,7 +303,19 @@ export default function WompiPaymentWidget({
                   </div>
                 </div>
               ) : (
-                <div ref={widgetRef} className="w-full h-full" />
+                <div className="w-full h-full p-4">
+                  <div 
+                    id="wompi-widget-container"
+                    data-public-key={process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY}
+                    data-currency="COP"
+                    data-amount-in-cents={Math.round(finalPrice * 100)}
+                    data-reference={`ROGER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}
+                    data-redirect-url={`${process.env.NEXTAUTH_URL}/payment/result`}
+                    data-customer-data-email={customerEmail}
+                    data-customer-data-full-name={customerName}
+                    className="w-full h-full"
+                  />
+                </div>
               )}
             </div>
           </div>
