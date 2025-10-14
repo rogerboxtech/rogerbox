@@ -1091,7 +1091,10 @@ export default function DashboardPage() {
                       
                       {/* Botón */}
                       <button
-                        onClick={() => router.push(`/course/${course.slug || course.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/course/${course.slug || course.id}`);
+                        }}
                         className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                       >
                         <ShoppingCart className="w-4 h-4" />
@@ -1118,7 +1121,11 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map(course => (
-              <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col">
+              <div 
+                key={course.id} 
+                onClick={() => router.push(`/course/${course.slug || course.id}`)}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col cursor-pointer"
+              >
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                     <img 
@@ -1232,7 +1239,8 @@ export default function DashboardPage() {
                     
                     {/* Botón */}
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         // Trackear la visita al curso
                         await trackCourseView(course.id);
                         router.push(`/course/${course.slug || course.id}`);
