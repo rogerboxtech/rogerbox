@@ -95,6 +95,23 @@ export default function DashboardPage() {
   console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
   console.log('📊 Dashboard: loadingCourses:', loadingCourses);
   console.log('📊 Dashboard: coursesError:', coursesError);
+  
+  // Cursos recomendados (por rating alto) y evitar duplicarlos en "Todos los Cursos"
+  const recommendedCourses = realCourses?.filter(course => (course.rating ?? 0) >= 4.5).slice(0, 3) || [];
+  const recommendedIds = new Set(recommendedCourses.map(c => c.id));
+  
+  // Filtrar cursos
+  const filteredCourses = realCourses?.filter(course => {
+    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Excluir los que ya aparecen como recomendados para evitar duplicados visuales
+    const notRecommended = !recommendedIds.has(course.id);
+    return matchesCategory && matchesSearch && notRecommended;
+  }) || [];
+  
+  console.log('📊 Dashboard: filteredCourses length:', filteredCourses.length);
   if (realCourses && realCourses.length > 0) {
     console.log('📊 Dashboard: Primer curso:', realCourses[0]);
     console.log('📊 Dashboard: Thumbnail del primer curso:', realCourses[0].thumbnail);
@@ -420,19 +437,6 @@ export default function DashboardPage() {
     // Cursos de muestra comentados - ahora usamos datos reales
   ];
   */
-
-  // Cursos recomendados (por rating alto) y evitar duplicarlos en "Todos los Cursos"
-  const recommendedCourses = realCourses.filter(course => (course.rating ?? 0) >= 4.5).slice(0, 3);
-  const recommendedIds = new Set(recommendedCourses.map(c => c.id));
-
-  const filteredCourses = realCourses.filter(course => {
-    const matchesCategory = selectedCategory === 'all' || course.category_name === selectedCategory;
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.short_description.toLowerCase().includes(searchQuery.toLowerCase());
-    // Excluir los que ya aparecen como recomendados para evitar duplicados visuales
-    const notRecommended = !recommendedIds.has(course.id);
-    return matchesCategory && matchesSearch && notRecommended;
-  });
 
   // Función para calcular IMC y dar recomendaciones
   const calculateBMI = (weight: number, height: number) => {
@@ -1123,7 +1127,10 @@ export default function DashboardPage() {
               {filteredCourses.map(course => (
               <div 
                 key={course.id} 
-                onClick={() => router.push(`/course/${course.slug || course.id}`)}
+                onClick={() => {
+                  console.log('🖱️ Card clicked:', course.title);
+                  router.push(`/course/${course.slug || course.id}`);
+                }}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col cursor-pointer"
               >
                 <div className="relative">
