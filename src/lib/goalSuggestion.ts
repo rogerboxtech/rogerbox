@@ -4,11 +4,14 @@ export interface GoalSuggestion {
   title: string;
   description: string;
   targetWeight: number;
+  currentWeight: number; // Add current weight
+  weightLossGoal: number; // Add weight loss goal
   deadline: string;
   motivation: string;
   difficulty: 'easy' | 'medium' | 'hard';
   estimatedDuration: string;
   recommendedCourse: string;
+  recommendedCourseImage: string; // Add course image
   keyPoints: string[];
 }
 
@@ -56,6 +59,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
   let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
   let estimatedDuration = '3 meses';
   let recommendedCourse = '';
+  let recommendedCourseImage = '';
   let keyPoints: string[] = [];
   
   // Solo sugerir pérdida de peso si hay sobrepeso/obesidad
@@ -66,6 +70,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
       // Obesidad - enfoque gradual
       difficulty = 'hard';
       recommendedCourse = 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!';
+      recommendedCourseImage = '/images/courses/course-1.jpg';
       estimatedDuration = '24 semanas';
       keyPoints = [
         'Pérdida gradual de 0.5-1 kg por semana',
@@ -77,6 +82,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
       // Sobrepeso - enfoque moderado
       difficulty = 'medium';
       recommendedCourse = 'RUTINA HIIT ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+      recommendedCourseImage = '/images/courses/course-1.jpg';
       estimatedDuration = '16 semanas';
       keyPoints = [
         'Pérdida gradual de 0.3-0.7 kg por semana',
@@ -90,6 +96,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = profile.weight;
     difficulty = 'easy';
     recommendedCourse = 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '8 semanas';
     keyPoints = [
       'Rutinas de tonificación',
@@ -103,6 +110,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = Math.round(24 * Math.pow(profile.height / 100, 2));
     difficulty = 'hard';
     recommendedCourse = 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '24 semanas';
     keyPoints = [
       'Entrenamiento de fuerza progresivo',
@@ -116,6 +124,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = Math.round(22 * Math.pow(profile.height / 100, 2));
     difficulty = 'medium';
     recommendedCourse = 'RUTINA HIIT ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '12 semanas';
     keyPoints = [
       'Rutinas HIIT de tonificación',
@@ -129,6 +138,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = Math.round(21 * Math.pow(profile.height / 100, 2));
     difficulty = 'medium';
     recommendedCourse = 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '8 semanas';
     keyPoints = [
       'Cardio progresivo',
@@ -142,6 +152,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = profile.weight; // Mantener peso
     difficulty = 'easy';
     recommendedCourse = 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '4 semanas';
     keyPoints = [
       'Rutinas de yoga y estiramiento',
@@ -155,6 +166,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     targetWeight = Math.round(23 * Math.pow(profile.height / 100, 2));
     difficulty = 'hard';
     recommendedCourse = 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+    recommendedCourseImage = '/images/courses/course-1.jpg';
     estimatedDuration = '16 semanas';
     keyPoints = [
       'Levantamiento de pesas progresivo',
@@ -169,6 +181,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
       targetWeight = Math.round(23 * Math.pow(profile.height / 100, 2));
       difficulty = 'medium';
       recommendedCourse = 'RUTINA HIIT ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+      recommendedCourseImage = '/images/courses/course-1.jpg';
       estimatedDuration = '12 semanas';
       keyPoints = [
         'Rutinas HIIT equilibradas',
@@ -180,6 +193,7 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
       targetWeight = profile.weight;
       difficulty = 'easy';
       recommendedCourse = 'FULL BODY EXPRESS ¡ENTRENA 12 MINUTOS EN VACACIONES!';
+      recommendedCourseImage = '/images/courses/course-1.jpg';
       estimatedDuration = '8 semanas';
       keyPoints = [
         'Mantenimiento de peso saludable',
@@ -249,11 +263,14 @@ export function generateGoalSuggestion(profile: UserProfile): GoalSuggestion {
     title,
     description,
     targetWeight,
+    currentWeight: profile.weight, // Add current weight
+    weightLossGoal: recommendedWeightLoss, // Add weight loss goal
     deadline: deadline.toISOString().split('T')[0],
     motivation,
     difficulty,
     estimatedDuration,
     recommendedCourse,
+    recommendedCourseImage, // Add course image
     keyPoints
   };
 }
@@ -283,5 +300,39 @@ export function getDifficultyEmoji(difficulty: 'easy' | 'medium' | 'hard'): stri
       return '🔥';
     default:
       return '🎯';
+  }
+}
+
+// Función para obtener el color del IMC
+export function getBMIColor(bmi: number): {
+  background: string;
+  border: string;
+  accent: string;
+  text: string;
+} {
+  if (bmi >= 30) {
+    // Obesidad - Rojo
+    return {
+      background: 'from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20',
+      border: 'border-red-200 dark:border-red-800',
+      accent: 'text-red-600',
+      text: 'text-red-600'
+    };
+  } else if (bmi >= 25) {
+    // Sobrepeso - Amarillo
+    return {
+      background: 'from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20',
+      border: 'border-yellow-200 dark:border-yellow-800',
+      accent: 'text-yellow-600',
+      text: 'text-yellow-600'
+    };
+  } else {
+    // Peso normal - Azul
+    return {
+      background: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+      border: 'border-blue-200 dark:border-blue-800',
+      accent: 'text-blue-600',
+      text: 'text-blue-600'
+    };
   }
 }

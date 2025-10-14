@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, User, Target, Weight, Ruler, Calendar, Utensils } from 'lucide-react';
+import { ChevronRight, ChevronLeft, User, Target, Weight, Ruler, Calendar, Utensils } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -24,8 +24,20 @@ interface UserProfile {
 export default function Onboarding({ onComplete, isUpdating = false, userName = 'Usuario' }: OnboardingProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // Función para formatear el nombre
+  const formatName = (fullName: string) => {
+    if (!fullName || fullName.trim() === '') return 'Usuario';
+    
+    // Tomar solo el primer nombre
+    const firstName = fullName.trim().split(' ')[0];
+    
+    // Convertir a camelCase: primera letra mayúscula, resto minúsculas
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  };
+
   const [profile, setProfile] = useState<UserProfile>({
-    name: userName,
+    name: formatName(userName),
     height: 170,
     gender: 'male',
     weight: 70,
@@ -84,9 +96,9 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
       component: (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { value: 'male', label: 'Hombre', emoji: '👨' },
-            { value: 'female', label: 'Mujer', emoji: '👩' },
-            { value: 'other', label: 'Otro', emoji: '🧑' }
+            { value: 'male', label: 'Hombre', emoji: '👨🏽' },
+            { value: 'female', label: 'Mujer', emoji: '👩🏽' },
+            { value: 'other', label: 'Otro', emoji: '🧑🏽' }
           ].map((option) => (
             <button
               key={option.value}
@@ -211,14 +223,11 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
         <div className="grid grid-cols-2 gap-4">
           {[
             { id: 'none', label: 'Sin hábitos específicos', emoji: '🍽️' },
+            { id: 'traditional_colombian', label: 'Tradicional Colombiana', emoji: '🍛' },
             { id: 'vegetarian', label: 'Vegetariano', emoji: '🥗' },
             { id: 'vegan', label: 'Vegano', emoji: '🌱' },
             { id: 'keto', label: 'Keto', emoji: '🥑' },
-            { id: 'paleo', label: 'Paleo', emoji: '🥩' },
-            { id: 'mediterranean', label: 'Mediterráneo', emoji: '🐟' },
-            { id: 'flexible', label: 'Flexible', emoji: '🍽️' },
-            { id: 'gluten_free', label: 'Sin Gluten', emoji: '🌾' },
-            { id: 'dairy_free', label: 'Sin Lácteos', emoji: '🥛' }
+            { id: 'low_carb', label: 'Baja en Carbohidratos', emoji: '🥩' }
           ].map((habit) => (
             <button
               key={habit.id}
@@ -244,18 +253,34 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
   ];
 
   const handleNext = () => {
+    // Validaciones obligatorias antes de avanzar
+    if (currentStep === 4 && profile.goals.length === 0) {
+      alert('Por favor selecciona al menos un objetivo para continuar.');
+      return;
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Validación final antes de completar
+      if (profile.goals.length === 0) {
+        alert('Por favor selecciona al menos un objetivo para finalizar.');
+        return;
+      }
+      
       // Calculate target weight before completing
       const targetWeight = calculateTargetWeight(profile.height, profile.weight, profile.goals);
-      onComplete({ ...profile, targetWeight, name: userName });
+      const formattedName = formatName(userName);
+      onComplete({ ...profile, targetWeight, name: formattedName });
     }
   };
 
-  const handleSkip = () => {
-    onComplete({ ...profile, name: userName });
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -268,6 +293,11 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
               ROGER<span className="text-[#85ea10]">BOX</span>
             </h1>
             <p className="text-gray-600 dark:text-white/80">Personaliza tu experiencia</p>
+            <div className="mt-4 p-3 bg-[#85ea10]/10 border border-[#85ea10]/30 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-white/80">
+                <span className="font-semibold text-[#85ea10]">Importante:</span> Esta información es esencial para crear tu plan personalizado de entrenamiento.
+              </p>
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -296,17 +326,22 @@ export default function Onboarding({ onComplete, isUpdating = false, userName = 
             {steps[currentStep].component}
 
             {/* Navigation */}
-            <div className="flex justify-between mt-8">
-              <button
-                onClick={handleSkip}
-                className="text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Saltar
-              </button>
+            <div className="flex justify-between items-center mt-8">
+              <div className="flex items-center">
+                {currentStep > 0 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="flex items-center space-x-2 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                    <span>Anterior</span>
+                  </button>
+                )}
+              </div>
               
               <button
                 onClick={handleNext}
-                disabled={(currentStep === 4 && profile.goals.length === 0) || isUpdating}
+                disabled={isUpdating}
                 className="bg-[#85ea10] hover:bg-[#7dd30f] disabled:bg-[#85ea10]/70 disabled:cursor-not-allowed text-black font-bold px-8 py-3 rounded-xl transition-all duration-300 flex items-center space-x-2"
               >
                 {isUpdating ? (

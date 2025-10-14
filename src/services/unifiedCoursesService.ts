@@ -128,7 +128,7 @@ class UnifiedCoursesService {
           description: course.description || '',
           short_description: course.short_description || '',
           thumbnail: course.preview_image || course.thumbnail_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),
-          preview_image: course.preview_image || course.video_preview_url || course.thumbnail_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),
+          preview_image: course.preview_image || course.thumbnail_url || course.video_preview_url || (course.intro_video_url ? this.getYouTubeThumbnail(course.intro_video_url) : '/images/course-placeholder.jpg'),
           price: course.price || 0,
           original_price: course.original_price,
           discount_percentage: course.discount_percentage || 0,

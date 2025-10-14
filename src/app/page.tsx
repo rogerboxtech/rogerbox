@@ -32,7 +32,7 @@ interface Course {
   lessons?: number;
   isNew?: boolean;
   isPopular?: boolean;
-  originalPrice?: number;
+  original_price?: number;
   thumbnail?: string;
   tags?: string[];
   whatYouWillLearn?: string[];
@@ -152,7 +152,16 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayedCourses.map(course => (
-              <div key={course.id} className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-gray-50 dark:hover:bg-white/12 transition-all duration-150 ease-out flex flex-col">
+              <div 
+                key={course.id} 
+                onClick={(e) => {
+                  console.log('🖱️ Landing card clicked:', course.title);
+                  console.log('🖱️ Landing course slug:', course.slug);
+                  console.log('🖱️ Landing course ID:', course.id);
+                  router.push(`/course/${course.slug || course.id}`);
+                }}
+                className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg overflow-hidden hover:shadow-xl hover:shadow-[#85ea10]/5 hover:scale-[1.01] hover:bg-gray-50 dark:hover:bg-white/12 transition-all duration-150 ease-out flex flex-col cursor-pointer"
+              >
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
@@ -262,7 +271,8 @@ export default function HomePage() {
                     
                     {/* Botón */}
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         // Trackear la visita al curso
                         await trackCourseView(course.id);
                         router.push(`/course/${course.slug || course.id}`);

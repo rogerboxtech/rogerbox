@@ -14,7 +14,10 @@ import ProgressCard from '@/components/ProgressCard';
 import CourseHeroCard from '@/components/CourseHeroCard';
 import WeeklyWeightReminder from '@/components/WeeklyWeightReminder';
 import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
+import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { generateGoalSuggestion, GoalSuggestion } from '@/lib/goalSuggestion';
+import CourseStartCalendar from '@/components/CourseStartCalendar';
+import CourseProgress from '@/components/CourseProgress';
 
 interface UserProfile {
   id: string;
@@ -74,6 +77,14 @@ export default function DashboardPage() {
     error: coursesError,
     refresh: refreshCourses
   } = useUnifiedCourses();
+  
+  // Hook para compras del usuario
+  const { purchases, loading: loadingPurchases, hasActivePurchases } = useUserPurchases();
+  
+  // Estados para el flujo de cursos comprados
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
+  const [courseLessons, setCourseLessons] = useState<any[]>([]);
 
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses.length);
@@ -91,6 +102,64 @@ export default function DashboardPage() {
     return course.original_price || course.price || 0;
   };
 
+  // Funciones para el flujo de cursos comprados
+  const handleStartCourse = (purchase: any) => {
+    setSelectedPurchase(purchase);
+    setShowStartCalendar(true);
+  };
+
+  const handleStartDateSelected = async (startDate: string) => {
+    if (!selectedPurchase) return;
+    
+    try {
+      // Actualizar la fecha de inicio en la base de datos
+      const { error } = await supabase
+        .from('course_purchases')
+        .update({ start_date: startDate })
+        .eq('id', selectedPurchase.id);
+
+      if (error) {
+        console.error('Error actualizando fecha de inicio:', error);
+        return;
+      }
+
+      // Cargar las lecciones del curso
+      await loadCourseLessons(selectedPurchase.course_id);
+      
+      setShowStartCalendar(false);
+      setSelectedPurchase(null);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const loadCourseLessons = async (courseId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select(`
+          id,
+          title,
+          description,
+          lesson_number,
+          duration_minutes,
+          preview_image,
+          is_preview
+        `)
+        .eq('course_id', courseId)
+        .order('lesson_number', { ascending: true });
+
+      if (error) {
+        console.error('Error cargando lecciones:', error);
+        return;
+      }
+
+      setCourseLessons(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
   console.log('📊 Dashboard: loadingCourses:', loadingCourses);
@@ -100,14 +169,32 @@ export default function DashboardPage() {
   const recommendedCourses = realCourses?.filter(course => (course.rating ?? 0) >= 4.5).slice(0, 3) || [];
   const recommendedIds = new Set(recommendedCourses.map(c => c.id));
   
+  // Debug logs para recomendados
+  console.log('📊 Dashboard: recommendedCourses length:', recommendedCourses.length);
+  if (realCourses && realCourses.length > 0) {
+    console.log('📊 Dashboard: Primer curso rating:', realCourses[0].rating);
+  }
+  
   // Filtrar cursos
   const filteredCourses = realCourses?.filter(course => {
-    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || course.category_name === selectedCategory;
     const matchesSearch = !searchQuery || 
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
     // Excluir los que ya aparecen como recomendados para evitar duplicados visuales
     const notRecommended = !recommendedIds.has(course.id);
+    
+    // Debug logs (simplificados)
+    if (!matchesCategory || !matchesSearch || !notRecommended) {
+      console.log(`🔍 Curso "${course.title}" filtrado:`, {
+        matchesCategory,
+        matchesSearch, 
+        notRecommended,
+        category: course.category_name,
+        rating: course.rating
+      });
+    }
+    
     return matchesCategory && matchesSearch && notRecommended;
   }) || [];
   
@@ -116,6 +203,7 @@ export default function DashboardPage() {
     console.log('📊 Dashboard: Primer curso:', realCourses[0]);
     console.log('📊 Dashboard: Thumbnail del primer curso:', realCourses[0].thumbnail);
     console.log('📊 Dashboard: Preview_image del primer curso:', realCourses[0].preview_image);
+    console.log('📊 Dashboard: Image URL final:', realCourses[0].preview_image || realCourses[0].thumbnail || '/images/course-placeholder.jpg');
   }
   
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -359,7 +447,7 @@ export default function DashboardPage() {
           
             // Generar sugerencia de meta si no tiene target_weight establecido
             // TEMPORAL: Forzar mostrar sugerencia para testing (comentar en producción)
-            const shouldShowSuggestion = !data.target_weight || !data.goal_deadline; // false para testing normal
+            const shouldShowSuggestion = true; // Siempre mostrar para testing
           
           if (shouldShowSuggestion) {
             const suggestion = generateGoalSuggestion({
@@ -428,6 +516,16 @@ export default function DashboardPage() {
 
     fetchCategories();
   }, []);
+
+  // Cargar lecciones cuando el usuario tenga un curso con fecha de inicio
+  useEffect(() => {
+    if (hasActivePurchases && purchases.length > 0) {
+      const activePurchase = purchases[0];
+      if (activePurchase.start_date && activePurchase.course_id) {
+        loadCourseLessons(activePurchase.course_id);
+      }
+    }
+  }, [hasActivePurchases, purchases]);
 
   // La lógica de carga de cursos ahora está en el hook useCoursesCache
 
@@ -671,6 +769,36 @@ export default function DashboardPage() {
     return null;
   }
 
+  // Si el usuario tiene cursos comprados, mostrar el flujo de progreso
+  if (hasActivePurchases && purchases.length > 0) {
+    const activePurchase = purchases[0]; // Tomar el primer curso comprado
+    
+    // Si no tiene fecha de inicio, mostrar calendario
+    if (!activePurchase.start_date) {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <CourseStartCalendar
+            course={activePurchase.course}
+            onStartDateSelected={handleStartDateSelected}
+            onCancel={() => setShowStartCalendar(false)}
+          />
+        </div>
+      );
+    }
+    
+    // Si tiene fecha de inicio, mostrar progreso
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <CourseProgress
+            course={activePurchase.course}
+            lessons={courseLessons}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!userProfile) {
     return <QuickLoading message="Cargando tu perfil..." duration={1500} />;
   }
@@ -744,31 +872,8 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
         {/* Welcome Message - Centrado arriba del progreso */}
-        {/* Welcome Section - Solo si no tiene meta establecida */}
-        {!userProfile?.target_weight && (
-          <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">
-              ¡Hola, {userProfile.name}! 👋
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-white/70">
-              Continúa tu cambio físico y alcanza tus metas
-            </p>
-          </div>
-        )}
 
         {/* Botón temporal para simular compra de curso - Solo para testing */}
-        {!purchasedCourses.length && (
-          <div className="text-center mb-6">
-            <button
-              onClick={() => {
-                loadPurchasedCourses();
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors text-sm"
-            >
-              🛒 Simular Compra de Curso (Testing)
-            </button>
-          </div>
-        )}
 
         {/* Progress Tracking Section - Solo si el usuario ha comprado cursos */}
         {userProfile && (userProfile as any)?.purchased_courses?.length > 0 && (
@@ -933,6 +1038,9 @@ export default function DashboardPage() {
             onCustomize={handleCustomizeGoalSuggestion}
             onDismiss={handleDismissGoalSuggestion}
             isLoading={isAcceptingGoal}
+            userBMI={userProfile ? userProfile.weight / Math.pow(userProfile.height / 100, 2) : 25}
+            userName={userProfile?.name || 'Usuario'}
+            availableCourses={realCourses}
           />
         )}
 
@@ -988,19 +1096,32 @@ export default function DashboardPage() {
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.map(course => (
-                <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 transition-all duration-300 flex flex-col">
+                <div 
+                  key={course.id} 
+                  onClick={(e) => {
+                    console.log('🖱️ Recommended card clicked:', course.title);
+                    console.log('🖱️ Recommended course slug:', course.slug);
+                    console.log('🖱️ Recommended course ID:', course.id);
+                    router.push(`/course/${course.slug || course.id}`);
+                  }}
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] transition-all duration-300 flex flex-col cursor-pointer"
+                >
                   <div className="relative">
                     <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                       <img 
-                        src={course.thumbnail || '/images/course-placeholder.jpg'} 
+                        src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'} 
                         alt={course.title}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.classList.remove('hidden');
-                        }}
+                      onError={(e) => {
+                        console.log('🖼️ Dashboard: Error loading recommended course image:', course.preview_image || course.thumbnail);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                      onLoad={() => {
+                        console.log('🖼️ Dashboard: Recommended course image loaded successfully:', course.preview_image || course.thumbnail);
+                      }}
                       />
                       <div className="hidden absolute inset-0 bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">
                         <Play className="w-12 h-12 text-[#85ea10]" />
@@ -1114,7 +1235,7 @@ export default function DashboardPage() {
 
         {/* All Courses */}
         {filteredCourses.length > 0 && (
-        <div>
+        <div data-courses-section>
           <div className="mb-6">
             <h2 className="text-xl font-bold dashboard-title text-gray-900 dark:text-white">
               Todos los Cursos
@@ -1127,8 +1248,12 @@ export default function DashboardPage() {
               {filteredCourses.map(course => (
               <div 
                 key={course.id} 
-                onClick={() => {
+                onClick={(e) => {
                   console.log('🖱️ Card clicked:', course.title);
+                  console.log('🖱️ Course slug:', course.slug);
+                  console.log('🖱️ Course ID:', course.id);
+                  console.log('🖱️ Event target:', e.target);
+                  console.log('🖱️ Event currentTarget:', e.currentTarget);
                   router.push(`/course/${course.slug || course.id}`);
                 }}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col cursor-pointer"
@@ -1136,12 +1261,16 @@ export default function DashboardPage() {
                 <div className="relative">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={course.thumbnail || '/images/course-placeholder.jpg'} 
+                      src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'} 
                       alt={course.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
+                        console.log('🖼️ Dashboard: Error loading course card image:', course.preview_image || course.thumbnail);
                         const target = e.target as HTMLImageElement;
                         target.src = '/images/course-placeholder.jpg';
+                      }}
+                      onLoad={() => {
+                        console.log('🖼️ Dashboard: Course card image loaded successfully:', course.preview_image || course.thumbnail);
                       }}
                     />
                     <div className="hidden absolute inset-0 bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">

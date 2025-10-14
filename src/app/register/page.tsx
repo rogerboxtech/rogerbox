@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { ArrowLeft, User as UserIcon, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { User as UserIcon, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -126,8 +129,9 @@ export default function RegisterPage() {
         });
 
         if (result?.ok) {
-          console.log('Sesión iniciada, redirigiendo al onboarding...');
-          router.push('/onboarding');
+          console.log('Sesión iniciada, redirigiendo...');
+          // Si hay callbackUrl, ir directamente allí, sino al onboarding
+          router.push(callbackUrl !== '/dashboard' ? callbackUrl : '/onboarding');
         } else {
           console.error('Error iniciando sesión:', result?.error);
           setErrors({ general: 'Usuario registrado pero error al iniciar sesión. Intenta iniciar sesión manualmente.' });
@@ -214,14 +218,6 @@ export default function RegisterPage() {
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Back Button */}
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center space-x-2 text-gray-600 dark:text-white hover:text-[#85ea10] transition-colors mb-8 group"
-          >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-semibold">Volver a la Landing</span>
-          </button>
 
           {/* Form Container */}
           <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl">
@@ -394,7 +390,7 @@ export default function RegisterPage() {
               <p className="text-gray-600 dark:text-white">
                 ¿Ya tienes cuenta?{' '}
                 <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)}
                   className="text-[#85ea10] hover:text-[#7dd30f] font-bold transition-colors"
                 >
                   Inicia sesión aquí

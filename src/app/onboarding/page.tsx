@@ -66,7 +66,7 @@ export default function OnboardingPage() {
         // Actualizar perfil existente
         console.log('Actualizando perfil existente...');
         const updateData: any = {
-          name: profile.name || (session as any).user.name || 'Usuario',
+          name: profile.name || 'Usuario',
           height: profile.height,
           weight: profile.weight,
           gender: profile.gender,
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
         console.log('Creando nuevo perfil...');
         const insertData: any = {
           id: (session as any).user.id,
-          name: profile.name || (session as any).user.name || 'Usuario',
+          name: profile.name || 'Usuario',
           email: (session as any).user.email,
           height: profile.height,
           weight: profile.weight,

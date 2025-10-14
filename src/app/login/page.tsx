@@ -1,14 +1,17 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import QuickLoading from '@/components/QuickLoading';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -86,8 +89,8 @@ export default function LoginPage() {
           setErrors({ general: 'Error al iniciar sesión. Inténtalo de nuevo.' });
         }
       } else {
-        // Redirigir al dashboard
-        router.push('/dashboard');
+        // Redirigir al callbackUrl o dashboard
+        router.push(callbackUrl);
       }
     } catch (error) {
       console.error('Error during login:', error);
@@ -145,14 +148,6 @@ export default function LoginPage() {
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Back Button */}
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center space-x-2 text-gray-600 dark:text-white hover:text-[#85ea10] transition-colors mb-8 group"
-          >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-semibold">Volver a la Landing</span>
-          </button>
 
           {/* Form Container */}
           <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl">
@@ -270,7 +265,7 @@ export default function LoginPage() {
               <div className="text-gray-600 dark:text-white/70 text-sm">
                 ¿No tienes cuenta?{' '}
                 <Link 
-                  href="/register" 
+                  href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                   className="text-[#85ea10] hover:text-[#7dd30f] font-medium transition-colors"
                 >
                   Regístrate aquí

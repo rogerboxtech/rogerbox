@@ -28,7 +28,7 @@ import RogerAlert from '../RogerAlert';
 
 interface CourseData {
   title: string;
-  description: string;
+  slug: string;
   short_description: string;
   preview_image: string | null;
   price: number | null;
@@ -84,7 +84,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
   const [formattedIvaPrice, setFormattedIvaPrice] = useState<string>('');
   const [courseData, setCourseData] = useState<CourseData>({
     title: '',
-    description: '',
+    slug: '',
     short_description: '',
     preview_image: null,
     price: null,
@@ -127,7 +127,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
 
       const newCourseData = {
         title: courseToEdit.title || '',
-        description: courseToEdit.description || '',
+        slug: courseToEdit.slug || '',
         short_description: courseToEdit.short_description || '',
         preview_image: courseToEdit.preview_image || null,
         price: courseToEdit.price !== undefined ? courseToEdit.price : null,
@@ -311,7 +311,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
   // Función para validar si el formulario está completo
   const isFormValid = () => {
     const titleValid = courseData.title.trim() && courseData.title.length <= 100;
-    const descriptionValid = courseData.description.trim() && courseData.description.length <= 1000;
+    const slugValid = courseData.slug.trim() && courseData.slug.length <= 100;
     const shortDescriptionValid = courseData.short_description.trim() && courseData.short_description.length <= 200;
     const priceValid = courseData.price && courseData.price > 0;
     const categoryValid = courseData.category;
@@ -327,13 +327,13 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
       lesson.duration_minutes && lesson.duration_minutes > 0
     );
     
-    const isValid = titleValid && descriptionValid && shortDescriptionValid && 
+    const isValid = titleValid && slugValid && shortDescriptionValid && 
                    priceValid && categoryValid && durationValid && levelValid && 
                    lessonsValid && lessonsContentValid;
     
     console.log('🔍 isFormValid - Validando formulario:');
     console.log('  - titleValid:', titleValid, '(', courseData.title.trim(), ')');
-    console.log('  - descriptionValid:', descriptionValid, '(', courseData.description.trim(), ')');
+    console.log('  - slugValid:', slugValid, '(', courseData.slug.trim(), ')');
     console.log('  - shortDescriptionValid:', shortDescriptionValid, '(', courseData.short_description.trim(), ')');
     console.log('  - priceValid:', priceValid, '(', courseData.price, ')');
     console.log('  - categoryValid:', categoryValid, '(', courseData.category, ')');
@@ -363,12 +363,12 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
         errors.push('El nombre del curso no puede exceder 100 caracteres');
       }
       
-      if (!courseData.description.trim()) {
-        errors.push('La descripción del curso es obligatoria');
+      if (!courseData.slug.trim()) {
+        errors.push('El slug del curso es obligatorio');
       }
       
-      if (courseData.description.length > 1000) {
-        errors.push('La descripción del curso no puede exceder 1000 caracteres');
+      if (courseData.slug.length > 100) {
+        errors.push('El slug del curso no puede exceder 100 caracteres');
       }
       
       if (!courseData.short_description.trim()) {
@@ -439,8 +439,8 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
       // Preparar datos del curso - SIN IVA temporalmente hasta resolver caché
       const courseDataToSubmit = {
         title: courseData.title,
+        slug: courseData.slug,
         short_description: courseData.short_description || '',
-        description: courseData.description || '',
         preview_image: courseData.preview_image || null,
         price: courseData.price || 0,
         discount_percentage: courseData.discount_percentage || 0,
@@ -733,25 +733,36 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
                 )}
               </div>
 
-              {/* Descripción completa */}
+              {/* Slug del curso */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Descripción Completa * ({courseData.description.length}/1000)
+                  Slug del Curso * ({courseData.slug.length}/100)
                 </label>
-                <textarea
-                  value={courseData.description}
-                  onChange={(e) => setCourseData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
+                <input
+                  type="text"
+                  value={courseData.slug}
+                  onChange={(e) => {
+                    const slug = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9\s-]/g, '') // Solo letras, números, espacios y guiones
+                      .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+                      .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+                      .trim();
+                    setCourseData(prev => ({ ...prev, slug }));
+                  }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                    courseData.description.length > 1000 
+                    courseData.slug.length > 100 
                       ? 'border-red-500 dark:border-red-500' 
                       : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Describe detalladamente qué incluye el curso, objetivos, metodología, etc. (máx. 1000 caracteres)"
-                  maxLength={1000}
+                  placeholder="curso-hiit-intenso-cardio"
+                  maxLength={100}
                 />
-                {courseData.description.length > 1000 && (
-                  <p className="text-red-500 text-sm mt-1">La descripción completa no puede exceder 1000 caracteres</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  URL amigable para el curso (ej: curso-hiit-intenso-cardio)
+                </p>
+                {courseData.slug.length > 100 && (
+                  <p className="text-red-500 text-sm mt-1">El slug no puede exceder 100 caracteres</p>
                 )}
               </div>
 
@@ -1362,7 +1373,7 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
             {currentStep < 4 ? (
               <button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={!courseData.title || !courseData.description || !courseData.short_description}
+                disabled={!courseData.title || !courseData.slug || !courseData.short_description}
                 className="px-4 py-2 bg-[#85ea10] hover:bg-[#7dd30f] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Siguiente
