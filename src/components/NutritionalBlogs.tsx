@@ -77,8 +77,8 @@ export default function NutritionalBlogs() {
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-[#85ea10] font-medium">
-          <BookOpen className="w-4 h-4" />
-          {blogs.length} artículos
+          <BookOpen className="w-4 h-4 flex-shrink-0" />
+          <span>{blogs.length} artículos</span>
         </div>
       </div>
 

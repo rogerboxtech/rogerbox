@@ -369,7 +369,9 @@ export default function CourseDetailPage() {
                 {/* Left Side - Course Stats */}
                 <div className="space-y-6">
                   <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Información del Curso</h3>
-                  <div className="grid grid-cols-2 gap-6">
+                  
+                  {/* Desktop: Grid layout */}
+                  <div className="hidden lg:grid grid-cols-2 gap-6">
                     {/* Duración */}
                     <div className="text-center">
                       <Clock className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
@@ -413,6 +415,78 @@ export default function CourseDetailPage() {
                       <Tag className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
                       <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Enfoque</div>
                       <div className="text-sm font-semibold text-gray-900 dark:text-white">{getCategoryName(course.category)}</div>
+                    </div>
+                  </div>
+
+                  {/* Mobile & Tablet: Horizontal scrollable carousel */}
+                  <div className="lg:hidden relative">
+                    <div 
+                      id="course-stats-scroll"
+                      className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide" 
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {/* Duración */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Clock className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Duración</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white">{course.duration || '40 min'}</div>
+                      </div>
+                      
+                      {/* Calificación */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Star className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Calificación</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white flex items-center justify-center space-x-1">
+                          <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                          <span>{course.rating || '4.8'}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Estudiantes */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Users className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Estudiantes</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white">{course.students_count?.toLocaleString() || '0'}</div>
+                      </div>
+                      
+                      {/* Clases */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Play className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Clases</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white">{lessons.length}</div>
+                      </div>
+                      
+                      {/* Calorías */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Zap className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Calorías</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white">{course.calories_burned ? `${course.calories_burned}+` : '500+'}</div>
+                      </div>
+
+                      {/* Enfoque */}
+                      <div className="text-center flex-shrink-0 w-24">
+                        <Tag className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Enfoque</div>
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white">{getCategoryName(course.category)}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Scroll indicator arrow */}
+                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pl-8 pr-2 py-4">
+                      <button
+                        onClick={() => {
+                          const scrollContainer = document.getElementById('course-stats-scroll');
+                          if (scrollContainer) {
+                            const cardWidth = 96 + 16; // card width + gap
+                            scrollContainer.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                          }
+                        }}
+                        className="flex items-center justify-center w-6 h-6 bg-[#85ea10] rounded-full shadow-lg hover:bg-[#7dd30f] transition-colors cursor-pointer"
+                      >
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

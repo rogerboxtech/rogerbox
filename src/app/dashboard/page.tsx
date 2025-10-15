@@ -14,6 +14,7 @@ import ProgressCard from '@/components/ProgressCard';
 import CourseHeroCard from '@/components/CourseHeroCard';
 import WeeklyWeightReminder from '@/components/WeeklyWeightReminder';
 import NutritionalBlogs from '@/components/NutritionalBlogs';
+import ReadMoreText from '@/components/ReadMoreText';
 import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { generateGoalSuggestion, GoalSuggestion } from '@/lib/goalSuggestion';
@@ -967,9 +968,10 @@ export default function DashboardPage() {
         )}
 
 
-        {/* Category Filters - Más compactos */}
+        {/* Category Filters - Carrusel en móvil/tablet, grid en desktop */}
         <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
+          {/* Desktop: Grid layout */}
+          <div className="hidden lg:flex flex-wrap gap-2">
             {categories.map(category => (
               <button
                 key={category.id}
@@ -985,6 +987,26 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+
+          {/* Mobile & Tablet: Horizontal scrollable carousel */}
+          <div className="lg:hidden">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg border transition-all duration-200 font-medium text-sm whitespace-nowrap flex-shrink-0 ${
+                    selectedCategory === category.id
+                      ? 'bg-[#85ea10] text-black border-[#85ea10] shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white border-gray-200 dark:border-white/20 hover:border-[#85ea10]/50'
+                  }`}
+                >
+                  <span className="text-sm">{category.icon}</span>
+                  <span>{category.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Recommended Courses */}
@@ -999,7 +1021,8 @@ export default function DashboardPage() {
           </div>
         ) : recommendedCourses.length > 0 && (
           <div className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Desktop: Grid layout */}
+            <div className="hidden xl:grid grid-cols-3 gap-6">
               {recommendedCourses.map(course => (
                 <div 
                   key={course.id} 
@@ -1046,7 +1069,11 @@ export default function DashboardPage() {
                   <div className="p-6 flex flex-col flex-grow">
                     {/* Información de calorías y clases */}
                     <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
-                    <p className="text-gray-600 dark:text-white/70 text-sm mb-3">{course.short_description}</p>
+                    <ReadMoreText 
+                      text={course.short_description} 
+                      maxLength={120}
+                      className="text-gray-600 dark:text-white/70 text-sm mb-3"
+                    />
                     
                     {/* Cuadro verde unificado */}
                     <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
@@ -1077,7 +1104,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />
-                        <span>{course.duration || '30 min'}</span>
+                        <span>{course.duration}</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Users className="w-3 h-3" />
@@ -1135,6 +1162,152 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+
+            {/* Mobile & Tablet: Horizontal scrollable carousel */}
+            <div className="xl:hidden relative">
+              <div 
+                id="recommended-courses-scroll"
+                className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide" 
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {recommendedCourses.map(course => (
+                  <div 
+                    key={course.id} 
+                    onClick={(e) => {
+                      console.log('🖱️ Recommended card clicked:', course.title);
+                      console.log('🖱️ Recommended course slug:', course.slug);
+                      console.log('🖱️ Recommended course ID:', course.id);
+                      router.push(`/course/${course.slug || course.id}`);
+                    }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] transition-all duration-300 flex flex-col cursor-pointer flex-shrink-0 w-[calc(100vw-2rem)] xl:w-auto"
+                  >
+                    <div className="relative">
+                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'} 
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('🖼️ Dashboard: Error loading recommended course image:', course.preview_image || course.thumbnail);
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.classList.remove('hidden');
+                          }}
+                          onLoad={() => {
+                            console.log('🖼️ Dashboard: Recommended course image loaded successfully:', course.preview_image || course.thumbnail);
+                          }}
+                        />
+                        <div className="hidden absolute inset-0 bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">
+                          <Play className="w-12 h-12 text-[#85ea10]" />
+                        </div>
+                      </div>
+                      {/* Tag Recomendado - Más pequeño y discreto */}
+                      <div className="absolute top-2 left-2 bg-[#85ea10] text-black px-2 py-0.5 rounded-full text-xs font-semibold shadow-md">
+                        Recomendado
+                      </div>
+                      
+                      {/* Rating - Movido abajo para no interferir con la imagen */}
+                      <div className="absolute bottom-3 right-3 flex items-center space-x-1 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <span className="text-sm font-semibold">{course.rating}</span>
+                      </div>
+                    </div>
+                    <div className="p-6 flex flex-col flex-grow">
+                      {/* Información de calorías y clases */}
+                      <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                      <ReadMoreText 
+                        text={course.short_description} 
+                        maxLength={60}
+                        className="text-gray-600 dark:text-white/70 text-sm mb-3"
+                      />
+                      
+                      {/* Cuadro verde unificado */}
+                      <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
+                        {/* Categoría del curso */}
+                        <div className="flex items-center justify-center mb-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
+                            {course.category_name || 'Sin categoría'}
+                          </span>
+                        </div>
+                        
+                        {/* Descripción del nivel */}
+                        <div className="flex items-center justify-center mb-3">
+                          <Zap className="w-4 h-4 text-[#85ea10] mr-1" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            ¡Sin límites! Para todos los niveles
+                          </span>
+                        </div>
+                        
+                        {/* Estadísticas del curso */}
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          <div className="flex flex-col items-center">
+                            <Zap className="w-4 h-4 text-[#85ea10] mb-1" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">500+ cal</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Play className="w-4 h-4 text-[#85ea10] mb-1" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{course.lessons_count || 0} clases</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Clock className="w-4 h-4 text-[#85ea10] mb-1" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{course.duration}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Users className="w-4 h-4 text-[#85ea10] mb-1" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{course.students_count || 0} personas</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Precio y botón */}
+                      <div className="text-center mb-4">
+                        <div className="flex items-center justify-center space-x-2 mb-1">
+                          {course.original_price && course.original_price > course.price ? (
+                            <>
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">${course.price?.toLocaleString()}</span>
+                              <span className="text-lg text-gray-500 line-through">${course.original_price.toLocaleString()}</span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">${course.price?.toLocaleString()}</span>
+                          )}
+                        </div>
+                        {course.original_price && course.original_price > course.price && (
+                          <div className="text-sm text-[#85ea10] font-semibold">
+                            {Math.round(((course.original_price - course.price) / course.original_price) * 100)}% de descuento
+                          </div>
+                        )}
+                      </div>
+                      
+                      <button
+                        className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>¡Comenzar Ahora!</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Scroll indicator arrow */}
+              <div className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pl-8 pr-2 py-4">
+                <button
+                  onClick={() => {
+                    const scrollContainer = document.getElementById('recommended-courses-scroll');
+                    if (scrollContainer) {
+                      const cardWidth = 280 + 16; // card width + gap
+                      scrollContainer.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                    }
+                  }}
+                  className="flex items-center justify-center w-8 h-8 bg-[#85ea10] rounded-full shadow-lg hover:bg-[#7dd30f] transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1149,8 +1322,10 @@ export default function DashboardPage() {
           {loadingCourses ? (
             <CourseLoadingSkeleton count={6} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map(course => (
+            <>
+              {/* Desktop: Grid layout */}
+              <div className="hidden xl:grid grid-cols-3 gap-6">
+                {filteredCourses.map(course => (
               <div 
                 key={course.id} 
                 onClick={(e) => {
@@ -1236,7 +1411,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />
-                        <span>{course.duration || '30 min'}</span>
+                        <span>{course.duration}</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <Users className="w-3 h-3" />
@@ -1296,6 +1471,176 @@ export default function DashboardPage() {
               </div>
             ))}
             </div>
+
+            {/* Mobile & Tablet: Horizontal scrollable carousel */}
+            <div className="xl:hidden relative">
+              <div 
+                id="all-courses-scroll"
+                className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide" 
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {filteredCourses.map(course => (
+                  <div 
+                    key={course.id} 
+                    onClick={(e) => {
+                      console.log('🖱️ Card clicked:', course.title);
+                      console.log('🖱️ Course slug:', course.slug);
+                      console.log('🖱️ Course ID:', course.id);
+                      console.log('🖱️ Event target:', e.target);
+                      console.log('🖱️ Event currentTarget:', e.currentTarget);
+                      router.push(`/course/${course.slug || course.id}`);
+                    }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 ease-out flex flex-col cursor-pointer flex-shrink-0 w-[calc(100vw-2rem)] xl:w-auto"
+                  >
+                    <div className="relative">
+                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={course.preview_image || course.thumbnail || '/images/course-placeholder.jpg'} 
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('🖼️ Dashboard: Error loading course card image:', course.preview_image || course.thumbnail);
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/images/course-placeholder.jpg';
+                          }}
+                          onLoad={() => {
+                            console.log('🖼️ Dashboard: Course card image loaded successfully:', course.preview_image || course.thumbnail);
+                          }}
+                        />
+                        <div className="hidden absolute inset-0 bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/40 flex items-center justify-center">
+                          <Play className="w-12 h-12 text-[#85ea10]" />
+                        </div>
+                      </div>
+                      {/* Etiquetas POPULAR/NUEVO */}
+                      <div className="absolute top-3 left-3 flex flex-col space-y-2">
+                        {course.isPopular && (
+                          <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                            POPULAR
+                          </div>
+                        )}
+                        {course.isNew && (
+                          <div className="bg-[#85ea10] text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                            NUEVO
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Rating */}
+                      <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 dark:bg-white dark:bg-gray-800/90 px-2 py-1 rounded-full">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-sm font-medium">{course.rating}</span>
+                      </div>
+                    </div>
+                    <div className="p-6 flex flex-col flex-grow">
+                      {/* Información de calorías y clases */}
+                      <h3 className="text-xl font-bold course-title text-gray-900 dark:text-white mb-2">{course.title}</h3>
+                      <ReadMoreText 
+                        text={course.short_description} 
+                        maxLength={60}
+                        className="text-gray-600 dark:text-white/70 text-sm mb-3"
+                      />
+                      
+                      {/* Cuadro verde unificado */}
+                      <div className="bg-[#85ea10]/10 rounded-lg p-4 mb-4 flex-grow flex flex-col justify-center">
+                        {/* Categoría del curso */}
+                        <div className="flex items-center justify-center mb-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#85ea10] text-black">
+                            {course.category_name || 'Sin categoría'}
+                          </span>
+                        </div>
+                        
+                        {/* Mensaje motivacional */}
+                        <div className="flex items-center justify-center space-x-2 mb-3">
+                          <Zap className="w-4 h-4 text-[#85ea10]" />
+                          <span className="text-sm font-semibold text-gray-700 dark:text-white">
+                            ¡Sin límites! Para todos los niveles
+                          </span>
+                        </div>
+                        
+                        {/* Estadísticas del curso */}
+                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/70">
+                          <span className="flex items-center space-x-1">
+                            <Zap className="w-3 h-3 text-[#85ea10]" />
+                            <span>{(course as any)?.calories_burned || 0} cal</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Play className="w-3 h-3" />
+                            <span>{course.lessons_count || 1} clases</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{course.duration}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Users className="w-3 h-3" />
+                            <span>{course.students_count?.toLocaleString() || 0} personas</span>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {/* Precio */}
+                        <div className="text-center">
+                          <div className="flex items-center justify-center space-x-2 mb-1">
+                            {course.original_price && course.original_price > course.price ? (
+                              <>
+                                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                  ${course.price?.toLocaleString()}
+                                </span>
+                                <span className="text-lg text-gray-500 line-through">
+                                  ${course.original_price?.toLocaleString()}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                ${course.price?.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {course.original_price && course.original_price > course.price && (
+                            <div className="text-sm text-[#85ea10] font-semibold">
+                              {Math.round(((course.original_price - course.price) / course.original_price) * 100)}% de descuento
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Botón */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // Trackear la visita al curso
+                            await trackCourseView(course.id);
+                            router.push(`/course/${course.slug || course.id}`);
+                          }}
+                          className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2 shadow-lg"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>¡Comenzar Ahora!</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Scroll indicator arrow */}
+              <div className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pl-8 pr-2 py-4">
+                <button
+                  onClick={() => {
+                    const scrollContainer = document.getElementById('all-courses-scroll');
+                    if (scrollContainer) {
+                      const cardWidth = 280 + 16; // card width + gap
+                      scrollContainer.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                    }
+                  }}
+                  className="flex items-center justify-center w-8 h-8 bg-[#85ea10] rounded-full shadow-lg hover:bg-[#7dd30f] transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            </>
           )}
 
           {/* Información de cursos */}

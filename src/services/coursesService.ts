@@ -210,7 +210,7 @@ class CoursesService {
         rating: course.rating || 4.8,
         students_count: course.students_count || 0,
         lessons_count: course.lessons_count || 1,
-        duration: typeof course.duration === 'number' ? `${course.duration}` : (course.duration || '30 min'),
+        duration: typeof course.duration === 'number' ? `${course.duration} min` : (course.duration || '30 min'),
         level: course.level || 'Intermedio',
         is_published: course.is_published,
         created_at: course.created_at,

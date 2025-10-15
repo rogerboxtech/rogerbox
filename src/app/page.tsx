@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Play, Clock, Users, Star, Search, ArrowRight, User, BookOpen, Award, TrendingUp, Zap, Utensils, Target, CheckCircle, ShoppingCart } from 'lucide-react';
+import { Play, Clock, Users, Star, Search, ArrowRight, User, BookOpen, Award, TrendingUp, Zap, Utensils, Target, CheckCircle, ShoppingCart, Flame, Dumbbell, Home } from 'lucide-react';
 import QuickLoading from '@/components/QuickLoading';
 import Footer from '@/components/Footer';
 import { trackCourseView } from '@/lib/analytics';
@@ -45,6 +45,9 @@ export default function HomePage() {
   const router = useRouter();
   // Usar el hook ULTRA RÁPIDO
   const { courses, loading: loadingCourses, error: coursesError } = useUnifiedCourses();
+  
+  // Estado para controlar el navbar
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Redirigir al dashboard si el usuario está autenticado
   useEffect(() => {
@@ -52,6 +55,20 @@ export default function HomePage() {
       router.push('/dashboard');
     }
   }, [status, router]);
+
+  // Efecto para detectar scroll y cambiar navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const heroHeight = window.innerHeight;
+      
+      // Cambiar navbar cuando se hace scroll más allá del 80% del hero
+      setIsScrolled(scrollPosition > heroHeight * 0.8);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Si está cargando la sesión, mostrar loading
   if (status === 'loading') {
@@ -74,8 +91,28 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Video Background - Fixed behind hero and navbar only */}
+      <div className="fixed inset-0 z-0" style={{ height: '100vh' }}>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src="/roger-hero.mp4" type="video/mp4" />
+        </video>
+        {/* Overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-lg">
+      <header className={`sticky top-0 z-20 backdrop-blur-lg transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-white/95 border-b border-gray-200' 
+          : 'bg-transparent border-b border-transparent'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-3">
@@ -85,31 +122,57 @@ export default function HomePage() {
                 }}
                 className="flex items-center space-x-3 hover:scale-105 hover:opacity-90 transition-all duration-300 ease-out group"
               >
-                <h1 className="text-3xl font-black text-gray-900 dark:text-white group-hover:text-[#85ea10] transition-colors duration-300 uppercase tracking-tight">
-                  ROGER<span className="text-[#85ea10] group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-300">BOX</span>
+                <h1 className={`text-3xl font-black group-hover:text-[#85ea10] transition-colors duration-300 uppercase tracking-tight ${
+                  isScrolled 
+                    ? 'text-gray-900 drop-shadow-none' 
+                    : 'text-white drop-shadow-sm'
+                }`}>
+                  ROGER<span className={`group-hover:text-white transition-colors duration-300 ${
+                    isScrolled ? 'text-[#85ea10]' : 'text-[#85ea10] drop-shadow-sm'
+                  }`}>BOX</span>
                 </h1>
               </button>
             </div>
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/#cursos" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Cursos</a>
-              <a href="/about" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Qué es RogerBox</a>
-              <a href="/enterprises" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Servicio para Empresas</a>
-              <a href="/contact" className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors">Contacto</a>
+              <a href="/#cursos" className={`transition-colors ${
+                isScrolled 
+                  ? 'text-gray-700 hover:text-gray-900' 
+                  : 'text-white/90 hover:text-white'
+              }`}>Cursos</a>
+              <a href="/about" className={`transition-colors ${
+                isScrolled 
+                  ? 'text-gray-700 hover:text-gray-900' 
+                  : 'text-white/90 hover:text-white'
+              }`}>Qué es RogerBox</a>
+              <a href="/enterprises" className={`transition-colors ${
+                isScrolled 
+                  ? 'text-gray-700 hover:text-gray-900' 
+                  : 'text-white/90 hover:text-white'
+              }`}>Servicio para Empresas</a>
+              <a href="/contact" className={`transition-colors ${
+                isScrolled 
+                  ? 'text-gray-700 hover:text-gray-900' 
+                  : 'text-white/90 hover:text-white'
+              }`}>Contacto</a>
             </nav>
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/login')}
-                className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className={`transition-colors ${
+                  isScrolled 
+                    ? 'text-gray-700 hover:text-gray-900' 
+                    : 'text-white/90 hover:text-white'
+                }`}
               >
                 Iniciar Sesión
               </button>
               <button
                 onClick={() => router.push('/register')}
-                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-3 rounded-xl transition-all duration-300"
+                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-6 py-3 rounded-xl transition-all duration-300 shadow-lg"
               >
                 Registrarse
               </button>
@@ -119,23 +182,78 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center min-h-[200px] text-center">
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-4 uppercase tracking-tight">
-              QUEMA GRASA CON{' '}
-              <span className="text-[#85ea10]">ENTRENAMIENTOS INTENSOS</span>
+      <section className="relative min-h-screen flex items-center justify-center pt-16 pb-8">
+        {/* Hero Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="space-y-6 md:space-y-8">
+            {/* Main Title */}
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-4 md:mb-6 uppercase tracking-tight leading-tight">
+              <span className="drop-shadow-md">QUEMA GRASA CON</span>{' '}
+              <span className="text-[#85ea10] drop-shadow-md">ENTRENAMIENTOS HIIT</span>
             </h1>
-            <p className="text-lg text-gray-700 dark:text-white/80 mb-4 max-w-3xl mx-auto">
-              Compra tu curso, elige tu fecha de inicio y cada día se desbloquea una nueva clase. 
-              ¡Empieza ya y quema grasa con entrenamientos HIIT efectivos!
+            
+            {/* Subtitle */}
+            <p className="text-xl md:text-2xl text-white/95 mb-6 md:mb-8 max-w-4xl mx-auto font-medium leading-relaxed">
+              Transforma tu cuerpo con entrenamientos intensos de alta calidad. 
+              <br className="hidden md:block" />
+              <span className="text-[#85ea10] font-bold">¡Cada día una nueva clase te espera!</span>
             </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={() => router.push('/register')}
+                className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-black px-8 py-4 rounded-xl text-lg transition-all duration-300 hover:scale-105 shadow-2xl hover:shadow-[#85ea10]/25"
+              >
+                ¡EMPEZAR AHORA!
+              </button>
+              <button
+                onClick={() => document.getElementById('cursos')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-lg text-white font-bold px-8 py-4 rounded-xl text-lg transition-all duration-300 hover:scale-105 border border-white/30"
+              >
+                Ver Cursos
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-8 mt-8 md:mt-12 max-w-4xl mx-auto">
+              <div className="text-center">
+                <div className="flex justify-center mb-2 md:mb-3">
+                  <Flame className="w-8 h-8 md:w-12 md:h-12 text-[#85ea10]" />
+                </div>
+                <div className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2">Quema de Grasa</div>
+                <div className="text-white/80 text-xs md:text-sm">Resultados visibles en 2 semanas</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2 md:mb-3">
+                  <Dumbbell className="w-8 h-8 md:w-12 md:h-12 text-[#85ea10]" />
+                </div>
+                <div className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2">Mejor Estado Físico</div>
+                <div className="text-white/80 text-xs md:text-sm">Fuerza y resistencia</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2 md:mb-3">
+                  <Home className="w-8 h-8 md:w-12 md:h-12 text-[#85ea10]" />
+                </div>
+                <div className="text-white font-semibold text-sm md:text-lg mb-1 md:mb-2">Desde Casa</div>
+                <div className="text-white/80 text-xs md:text-sm">Sin gimnasio, sin excusas</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="animate-bounce">
+            <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-white/70 rounded-full mt-2 animate-pulse"></div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Courses Section */}
-      <section id="cursos" className="pb-8">
+      <section id="cursos" className="py-16 pb-8 bg-white dark:bg-gray-900 relative z-10 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Courses Grid */}
@@ -307,7 +425,7 @@ export default function HomePage() {
 
 
       {/* Nutrition Plans Section */}
-      <section className="py-20 bg-gray-50 dark:bg-white/5">
+      <section className="py-20 bg-gray-50 dark:bg-white/5 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -471,7 +589,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Footer />
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   );
 }
