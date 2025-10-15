@@ -1141,15 +1141,18 @@ export default function CourseCreator({ onClose, onSuccess, courseToEdit }: Cour
 
                       <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          URL del Video
+                          Playback ID de Mux
                         </label>
                         <input
-                          type="url"
+                          type="text"
                           value={lesson.video_url}
                           onChange={(e) => updateLesson(index, 'video_url', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#85ea10] focus:border-[#85ea10] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          placeholder="https://youtube.com/watch?v=..."
+                          placeholder="Ej: abc123def456ghi789"
                         />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Ingresa el Playback ID de Mux (sin la URL completa)
+                        </p>
                       </div>
 
                       <div className="mt-4">

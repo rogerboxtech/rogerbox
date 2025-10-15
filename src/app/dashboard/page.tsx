@@ -81,6 +81,24 @@ export default function DashboardPage() {
   // Hook para compras del usuario
   const { purchases, loading: loadingPurchases, hasActivePurchases } = useUserPurchases();
   
+  // Estado para compras simuladas
+  const [hasSimulatedPurchase, setHasSimulatedPurchase] = useState(false);
+  
+  // Verificar compras simuladas
+  useEffect(() => {
+    const simulatedPurchase = localStorage.getItem('simulated_purchase');
+    if (simulatedPurchase) {
+      try {
+        const purchase = JSON.parse(simulatedPurchase);
+        if (purchase.user_id === (session as any)?.user?.id) {
+          setHasSimulatedPurchase(true);
+        }
+      } catch (error) {
+        console.error('Error parsing simulated purchase:', error);
+      }
+    }
+  }, [session]);
+  
 
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses.length);
@@ -778,148 +796,74 @@ export default function DashboardPage() {
         {/* Welcome Message - Centrado arriba del progreso */}
 
         {/* Botón temporal para simular compra de curso - Solo para testing */}
-
-        {/* Progress Tracking Section - Solo si el usuario ha comprado cursos */}
-        {userProfile && (userProfile as any)?.purchased_courses?.length > 0 && (
+        {userProfile && (!(userProfile as any)?.purchased_courses || (userProfile as any)?.purchased_courses?.length === 0) && !hasSimulatedPurchase && (
           <div className="mb-8">
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <Target className="w-5 h-5 text-[#85ea10]" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {hasActivePurchases ? '¡Empieza tu nuevo curso!' : 'Tu Progreso'}
+            <div className="bg-gradient-to-r from-[#85ea10] to-[#7dd30f] rounded-2xl p-6 text-center shadow-lg">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <ShoppingCart className="w-6 h-6 text-black" />
+                <h2 className="text-xl font-bold text-black">
+                  ¡Simula tu primera compra!
                 </h2>
               </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="bg-gradient-to-br from-[#85ea10]/20 to-[#85ea10]/10 rounded-xl p-4 shadow-lg">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="p-2 bg-[#85ea10]/30 rounded-lg">
-                    <Trophy className="w-4 h-4 text-[#85ea10]" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Racha Actual</h3>
-                </div>
-                <div className="text-3xl font-bold text-[#85ea10] mb-1">
-                  {userProfile.streak_days || 0} días
-                </div>
-                <div className="text-sm text-gray-600 dark:text-white/60">Clases consecutivas</div>
-                <div className="mt-2 text-xs text-gray-500 dark:text-white/40">
-                  {userProfile.streak_days && userProfile.streak_days > 0 ? 
-                    `Última clase: ${userProfile.last_class_date ? new Date(userProfile.last_class_date).toLocaleDateString('es-ES') : 'Ayer'}` :
-                    '¡Comienza tu primera clase!'
-                  }
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-xl p-4 shadow-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <div className="p-2 bg-blue-500/30 rounded-lg">
-                    <Weight className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Meta de Peso</h3>
-                </div>
-                
-                {userProfile.target_weight ? (
-                  <>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                      {userProfile.current_weight || userProfile.weight} → {userProfile.target_weight} kg
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-white/60 mb-2">
-                      Progreso: {userProfile.weight_progress_percentage || 0}%
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-white/20 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full" style={{
-                        width: `${userProfile.weight_progress_percentage || 0}%`
-                      }}></div>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500 dark:text-white/40">
-                      Fecha límite: {userProfile.goal_deadline ? 
-                        new Date(userProfile.goal_deadline).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) : 
-                        'No definida'
-                      }
-                    </div>
-                    <div className="mt-3 flex space-x-2">
-                      <button 
-                        onClick={() => {
-                          setGoalData({
-                            targetWeight: userProfile.target_weight?.toString() || '',
-                            goalType: 'lose',
-                            deadline: userProfile.goal_deadline || ''
-                          });
-                          setShowGoalModal(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-700 text-xs font-medium bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors"
-                      >
-                        Actualizar Meta
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setGoalData({
-                            targetWeight: '',
-                            goalType: 'lose',
-                            deadline: ''
-                          });
-                          setShowGoalModal(true);
-                        }}
-                        className="text-green-600 hover:text-green-700 text-xs font-medium bg-green-100 hover:bg-green-200 px-3 py-1 rounded-lg transition-colors"
-                      >
-                        + Nueva Meta
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center pt-0 pb-2">
-                    <div className="text-sm text-gray-700 dark:text-white/80 mb-2">
-                      ¡Establece tu objetivo y comienza a transformarte!
-                    </div>
-                    <button 
-                      onClick={() => setShowGoalModal(true)}
-                      className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-medium px-3 py-1.5 rounded-lg transition-colors text-sm"
-                    >
-                      Crear mi meta
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-500/20 to-purple-400/10 rounded-xl p-4 shadow-lg">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="p-2 bg-purple-500/30 rounded-lg">
-                    <Play className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Recomendación</h3>
-                </div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                  "Transformación Total 90 Días"
-                </div>
-                <div className="text-xs text-gray-600 dark:text-white/60 mb-2">
-                  Perfecto para tu meta de bajar 10kg
-                </div>
-                <div className="text-xs text-purple-600 font-medium">
-                  Podrías lograrlo en 3 meses
-                </div>
-              </div>
+              <p className="text-black/80 mb-4">
+                Mientras arreglamos el sistema de pagos, puedes simular la compra de un curso para probar la plataforma completa.
+              </p>
+              <button
+                onClick={() => {
+                  // Simular compra del curso "destroy-that-fat"
+                  const mockCourse = {
+                    id: 'destroy-that-fat',
+                    title: 'DESTROY that FAT HIIT 40 MIN',
+                    slug: 'destroy-that-fat'
+                  };
+                  
+                  // Crear un estado temporal de compra con fecha de inicio de hoy
+                  const today = new Date();
+                  const simulatedPurchase = {
+                    course: mockCourse,
+                    purchase_date: today.toISOString(),
+                    start_date: today.toISOString(), // Empezar hoy
+                    user_id: (session as any)?.user?.id,
+                    completed_lessons: [] // Sin clases completadas aún
+                  };
+                  
+                  localStorage.setItem('simulated_purchase', JSON.stringify(simulatedPurchase));
+                  
+                  // Actualizar estado local
+                  setHasSimulatedPurchase(true);
+                  
+                  // Redirigir directamente a la página de progreso del curso
+                  router.push('/course/destroy-that-fat/progress');
+                }}
+                className="bg-black hover:bg-gray-800 text-white font-bold px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
+              >
+                Simular Compra de "DESTROY that FAT"
+              </button>
             </div>
-
-            {!userProfile.target_weight && (
-              <div className="mt-6 bg-gradient-to-r from-[#85ea10]/10 to-[#85ea10]/5 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">¡Establece tu Meta!</h3>
-                    <p className="text-sm text-gray-600 dark:text-white/60">
-                      Peso actual: {userProfile.weight} kg - ¿Cuál es tu objetivo?
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setShowGoalModal(true)}
-                    className="bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold px-4 py-2 rounded-lg transition-colors text-sm"
-                  >
-                    Agregar Meta
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+        )}
+
+        {/* Redirigir usuarios con cursos comprados al dashboard específico */}
+        {userProfile && ((userProfile as any)?.purchased_courses?.length > 0 || hasSimulatedPurchase) && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-[#85ea10] to-[#7dd30f] rounded-2xl p-6 text-center shadow-lg">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <Play className="w-6 h-6 text-black" />
+                <h2 className="text-xl font-bold text-black">
+                  ¡Tienes cursos activos!
+                </h2>
+              </div>
+              <p className="text-black/80 mb-4">
+                Ve a tu dashboard personalizado para ver tu progreso y continuar con tus clases.
+              </p>
+              <button
+                onClick={() => router.push('/student')}
+                className="bg-black hover:bg-gray-800 text-white font-bold px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
+              >
+                Ir a Mi Dashboard
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Course Hero Card - Si tiene cursos comprados */}
@@ -1030,7 +974,17 @@ export default function DashboardPage() {
                     console.log('🖱️ Recommended card clicked:', course.title);
                     console.log('🖱️ Recommended course slug:', course.slug);
                     console.log('🖱️ Recommended course ID:', course.id);
-                    router.push(`/course/${course.slug || course.id}`);
+                    
+                    // Verificar si el curso ya fue comprado
+                    const isPurchased = (userProfile as any)?.purchased_courses?.some((purchasedCourse: any) => 
+                      purchasedCourse.course_id === course.id || purchasedCourse.course_slug === course.slug
+                    ) || hasSimulatedPurchase;
+                    
+                    if (isPurchased) {
+                      router.push(`/course/${course.slug || course.id}/progress`);
+                    } else {
+                      router.push(`/course/${course.slug || course.id}`);
+                    }
                   }}
                   className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl hover:shadow-[#85ea10]/10 hover:scale-[1.02] transition-all duration-300 flex flex-col cursor-pointer"
                 >
