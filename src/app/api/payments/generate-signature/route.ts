@@ -12,24 +12,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Intentar con la llave privada primero, luego con la de integridad
+    const privateKey = process.env.WOMPI_PRIVATE_KEY;
     const integrityKey = process.env.WOMPI_INTEGRITY_KEY;
-    if (!integrityKey) {
+    
+    if (!privateKey && !integrityKey) {
       return NextResponse.json(
-        { error: 'Wompi integrity key not configured' },
+        { error: 'Wompi keys not configured' },
         { status: 500 }
       );
     }
 
-    // Generar la firma de integridad según la documentación de Wompi
-    // Orden: Referencia + Monto + Moneda + SecretoIntegridad
-    const signatureString = `${reference}${amountInCents}${currency}${integrityKey}`;
+    // Usar la llave de integridad para HMAC
+    const keyToUse = integrityKey || privateKey;
+    
+    // Generar la firma de integridad según la documentación oficial de Wompi
+    // Formato: reference + amount + currency (sin la key, se usa en HMAC)
+    const signatureString = `${reference}${amountInCents}${currency}`;
     
     console.log('🔐 Signature string:', signatureString);
-    console.log('🔑 Integrity key:', integrityKey);
+    console.log('🔑 Key used:', keyToUse?.substring(0, 10) + '...');
     
-    // Crear el checksum usando SHA256 con la llave de integridad
+    // Crear el checksum usando HMAC-SHA256
+    if (!keyToUse) {
+      return NextResponse.json(
+        { error: 'WOMPI_INTEGRITY_KEY no está configurado' },
+        { status: 500 }
+      );
+    }
+    
     const checksum = crypto
-      .createHmac('sha256', integrityKey)
+      .createHmac('sha256', keyToUse)
       .update(signatureString)
       .digest('hex');
     

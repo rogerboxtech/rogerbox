@@ -162,18 +162,19 @@ export interface NutritionalPlanPurchase {
   price: number;
 }
 
-export interface Blog {
+export interface NutritionalBlog {
   id: string;
   title: string;
-  excerpt: string;
-  content: string;
+  slug: string;
   author: string;
-  category: 'nutrition' | 'exercise' | 'lifestyle' | 'tips';
-  tags: string[];
-  readTime: number; // in minutes
-  thumbnailUrl: string;
-  publishedAt: Date;
-  isFree: boolean;
+  reading_time: number; // en minutos
+  excerpt: string; // texto corto de resumen
+  content: string; // contenido completo del blog
+  featured_image_url?: string;
+  is_published: boolean;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AppState {
@@ -182,6 +183,6 @@ export interface AppState {
   classes: Class[];
   videos: Video[];
   nutritionalPlans: NutritionalPlan[];
-  blogs: Blog[];
+  nutritionalBlogs: NutritionalBlog[];
   isAdminMode: boolean;
 }

@@ -22,6 +22,7 @@ import {
 import QuickLoading from '@/components/QuickLoading';
 import CourseCreator from '@/components/admin/CourseCreator';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import BlogManagement from '@/components/admin/BlogManagement';
 import { supabase } from '@/lib/supabase';
 
 interface AdminStats {
@@ -335,6 +336,7 @@ export default function AdminDashboard() {
   const tabs = [
     { id: 'overview', label: 'Resumen', icon: BarChart3 },
     { id: 'courses', label: 'Cursos', icon: BookOpen },
+    { id: 'blogs', label: 'Blogs', icon: BookOpen },
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'sales', label: 'Ventas', icon: ShoppingCart },
     { id: 'enterprise', label: 'Empresas', icon: Building2 },
@@ -611,6 +613,10 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'blogs' && (
+          <BlogManagement />
         )}
 
         {activeTab === 'users' && (

@@ -8,14 +8,13 @@ import NutritionalPlanManagement from './admin/NutritionalPlanManagement';
 import BlogManagement from './admin/BlogManagement';
 
 export default function AdminDashboard() {
-  const { users, videos, nutritionalPlans, blogs, classes } = useStore();
+  const { users, videos, nutritionalPlans, classes } = useStore();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Ensure arrays are defined with fallbacks
   const safeUsers = users || [];
   const safeVideos = videos || [];
   const safeNutritionalPlans = nutritionalPlans || [];
-  const safeBlogs = blogs || [];
   const safeClasses = classes || [];
 
   // Calculate stats manually to avoid hydration issues
@@ -105,7 +104,7 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-bold text-white">Blogs</h3>
             <BookOpen className="w-6 h-6 text-[#85ea10]" />
           </div>
-          <p className="text-2xl font-bold text-white">{safeBlogs.length}</p>
+          <p className="text-2xl font-bold text-white">0</p>
           <p className="text-white/60 text-sm">Artículos publicados</p>
         </div>
       </div>
@@ -252,12 +251,7 @@ export default function AdminDashboard() {
         );
       case 'blogs':
         return (
-          <BlogManagement
-            blogs={safeBlogs}
-            onAddBlog={(blog) => console.log('Add blog:', blog)}
-            onEditBlog={(id, blog) => console.log('Edit blog:', id, blog)}
-            onDeleteBlog={(id) => console.log('Delete blog:', id)}
-          />
+          <BlogManagement />
         );
       case 'settings':
         return <div className="text-white">Configuración - Próximamente</div>;

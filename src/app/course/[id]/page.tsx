@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
-import { Star, Clock, Users, Play, ShoppingCart, Heart, ArrowLeft, CheckCircle, Zap, Target, Award, Shield, Tag } from 'lucide-react';
+import { Star, Clock, Users, Play, ShoppingCart, Heart, ArrowLeft, CheckCircle, Zap, Target, Award, Shield, Tag, CreditCard } from 'lucide-react';
 import WompiPaymentWidget from '@/components/WompiPaymentWidget';
 import RogerBoxMuxPlayer from '@/components/RogerBoxMuxPlayer';
 
@@ -60,6 +60,7 @@ export default function CourseDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [categoryMap, setCategoryMap] = useState<{ [key: string]: string }>({});
   const [showPaymentWidget, setShowPaymentWidget] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   // Cargar categorías desde la base de datos
   useEffect(() => {
@@ -338,60 +339,88 @@ export default function CourseDetailPage() {
             {/* Course Details - All in One Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
               {/* Course Title */}
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 leading-tight">
                 {course.title}
               </h1>
 
-              {/* Course Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-                {/* Duración */}
-                <div className="text-center">
-                  <Clock className="w-8 h-8 text-[#85ea10] mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Duración</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{course.duration || '40 min'}</div>
+              {/* Course Description */}
+              {course.description && (
+                <div className="mb-4">
+                  <p className={`text-gray-600 dark:text-gray-300 leading-relaxed ${
+                    !showFullDescription ? 'line-clamp-2' : ''
+                  }`}>
+                    {course.description}
+                  </p>
+                  {course.description.length > 150 && (
+                    <button
+                      onClick={() => setShowFullDescription(!showFullDescription)}
+                      className="text-[#85ea10] hover:text-[#7dd30f] font-medium text-sm mt-2 transition-colors"
+                    >
+                      {showFullDescription ? 'Leer menos' : 'Leer más'}
+                    </button>
+                  )}
                 </div>
-                
-                {/* Calificación */}
-                <div className="text-center">
-                  <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Calificación</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center justify-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span>{course.rating || '4.8'}</span>
+              )}
+
+              {/* Course Stats and Pricing - Side by Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative">
+                {/* Vertical divider for desktop */}
+                <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-600 transform -translate-x-1/2"></div>
+                {/* Left Side - Course Stats */}
+                <div className="space-y-6">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Información del Curso</h3>
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Duración */}
+                    <div className="text-center">
+                      <Clock className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Duración</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{course.duration || '40 min'}</div>
+                    </div>
+                    
+                    {/* Calificación */}
+                    <div className="text-center">
+                      <Star className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Calificación</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center justify-center space-x-1">
+                        <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                        <span>{course.rating || '4.8'}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Estudiantes */}
+                    <div className="text-center">
+                      <Users className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Estudiantes</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{course.students_count?.toLocaleString() || '0'}</div>
+                    </div>
+                    
+                    {/* Clases */}
+                    <div className="text-center">
+                      <Play className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Clases</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{lessons.length}</div>
+                    </div>
+                    
+                    {/* Calorías */}
+                    <div className="text-center">
+                      <Zap className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Calorías</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{course.calories_burned ? `${course.calories_burned}+` : '500+'}</div>
+                    </div>
+
+                    {/* Enfoque */}
+                    <div className="text-center">
+                      <Tag className="w-5 h-5 text-[#85ea10] mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Enfoque</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{getCategoryName(course.category)}</div>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Estudiantes */}
-                <div className="text-center">
-                  <Users className="w-8 h-8 text-[#85ea10] mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Estudiantes</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{course.students_count?.toLocaleString() || '0'}</div>
-                </div>
-                
-                {/* Clases */}
-                <div className="text-center">
-                  <Play className="w-8 h-8 text-[#85ea10] mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Clases</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{lessons.length}</div>
-                </div>
-                
-                {/* Calorías */}
-                <div className="text-center">
-                  <Zap className="w-8 h-8 text-[#85ea10] mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Calorías</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{course.calories_burned ? `${course.calories_burned}+` : '500+'}</div>
-                </div>
 
-                {/* Enfoque */}
-                <div className="text-center">
-                  <Tag className="w-8 h-8 text-[#85ea10] mx-auto mb-2" />
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">Enfoque</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{getCategoryName(course.category)}</div>
-                </div>
-              </div>
-
-              {/* Purchase Section */}
-              <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                {/* Right Side - Pricing and Purchase */}
+                <div className="space-y-4">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Precio y Compra</h3>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 space-y-4">
                 {course.original_price && course.original_price > course.price ? (
                   <div className="space-y-3">
                     {/* Pricing - Clean Layout */}
@@ -399,10 +428,10 @@ export default function CourseDetailPage() {
                       <div className="text-2xl text-gray-500 dark:text-gray-400 line-through">
                         ${course.original_price.toLocaleString('es-CO')}
                       </div>
-                      <div className="text-4xl font-black text-gray-900 dark:text-white">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
                         ${finalPrice.toLocaleString('es-CO')}
                       </div>
-                      <div className="text-lg text-[#85ea10] font-bold">
+                      <div className="text-sm text-[#85ea10] font-semibold">
                         ¡Ahorras ${(course.original_price - finalPrice).toLocaleString('es-CO')}!
                       </div>
                     </div>
@@ -410,17 +439,33 @@ export default function CourseDetailPage() {
                     {/* Purchase Button */}
                     <button
                       onClick={handlePurchase}
-                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-black py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
+                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 text-base shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ShoppingCart className="w-5 h-5" />
                       <span>¡COMPRAR AHORA!</span>
                     </button>
+
+                    {/* Payment Info */}
+                    <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Shield className="w-4 h-4 text-[#85ea10]" />
+                        <span>Pago 100% seguro con Wompi</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Clock className="w-4 h-4 text-[#85ea10]" />
+                        <span>Acceso inmediato al curso</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <CreditCard className="w-4 h-4 text-[#85ea10]" />
+                        <span>Acepta tarjetas, Nequi y PSE</span>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {/* Pricing - Clean Layout */}
                     <div className="text-center space-y-1">
-                      <div className="text-4xl font-black text-gray-900 dark:text-white">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
                         ${course.price.toLocaleString('es-CO')}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -431,13 +476,31 @@ export default function CourseDetailPage() {
                     {/* Purchase Button */}
                     <button
                       onClick={handlePurchase}
-                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-black py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
+                      className="w-full bg-[#85ea10] hover:bg-[#7dd30f] text-black font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 text-base shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ShoppingCart className="w-5 h-5" />
                       <span>¡COMPRAR AHORA!</span>
                     </button>
+
+                    {/* Payment Info */}
+                    <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Shield className="w-4 h-4 text-[#85ea10]" />
+                        <span>Pago 100% seguro con Wompi</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Clock className="w-4 h-4 text-[#85ea10]" />
+                        <span>Acceso inmediato al curso</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                        <CreditCard className="w-4 h-4 text-[#85ea10]" />
+                        <span>Acepta tarjetas, Nequi y PSE</span>
+                      </div>
+                    </div>
                   </div>
                 )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -457,10 +520,10 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-green-800 dark:text-green-300 mb-1">
+                    <h4 className="text-base font-semibold text-green-800 dark:text-green-300 mb-1">
                       💪 CÓMO FUNCIONA TU CURSO
                     </h4>
-                    <p className="text-xs text-green-700 dark:text-green-400 leading-relaxed">
+                    <p className="text-sm text-green-700 dark:text-green-400 leading-relaxed">
                       Al comprar, eliges cuándo empezar. Cada día se desbloquea una nueva clase. ¡Mantén la constancia para no perderte ninguna!
                     </p>
                   </div>
@@ -468,7 +531,7 @@ export default function CourseDetailPage() {
             </div>
 
               <div className="p-4 border-b border-gray-200 dark:border-gray-600 flex-shrink-0">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
                   Contenido del Curso
                 </h3>
           </div>
@@ -531,7 +594,7 @@ export default function CourseDetailPage() {
                         </div>
 
                               {lesson.description && (
-                                <p className={`text-xs mb-2 line-clamp-2 ml-7 ${
+                                <p className={`text-sm mb-2 line-clamp-2 ml-7 ${
                                   classStatus === 'available' ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
                                 }`}>
                                 {lesson.description}
@@ -541,17 +604,17 @@ export default function CourseDetailPage() {
                               {/* Status Text */}
                               <div className="mb-2 ml-7">
                                 {classStatus === 'available' && (
-                                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">✅ Disponible hoy</span>
+                                  <span className="text-sm text-green-600 dark:text-green-400 font-medium">✅ Disponible hoy</span>
                                 )}
                                 {classStatus === 'tomorrow' && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">⏰ Disponible mañana</span>
+                                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">⏰ Disponible mañana</span>
                                 )}
                                 {classStatus === 'upcoming' && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">📅 Próximamente</span>
+                                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">📅 Próximamente</span>
                 )}
               </div>
 
-                              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 ml-7">
+                              <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 ml-7">
                                 <div className="flex items-center space-x-1">
                                   <Clock className="w-3 h-3" />
                                   <span>{lesson.duration_minutes} min</span>

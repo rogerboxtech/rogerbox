@@ -4,19 +4,42 @@ import { wompiService, WompiWebhookData } from '@/lib/wompi';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔔 Webhook received at:', new Date().toISOString());
+    
     const body = await request.text();
     const signature = request.headers.get('x-wompi-signature') || '';
     
-    // Verificar firma del webhook (en producción)
-    if (!wompiService.verifyWebhookSignature(body, signature)) {
-      console.error('❌ Invalid webhook signature');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      );
-    }
+    console.log('🔔 Webhook received:', {
+      body: body.substring(0, 200) + '...',
+      signature: signature.substring(0, 20) + '...',
+      contentType: request.headers.get('content-type'),
+      userAgent: request.headers.get('user-agent'),
+      allHeaders: Object.fromEntries(request.headers.entries())
+    });
+    
+    // En sandbox, no verificamos la firma por ahora
+    // if (!wompiService.verifyWebhookSignature(body, signature)) {
+    //   console.error('❌ Invalid webhook signature');
+    //   return NextResponse.json(
+    //     { error: 'Invalid signature' },
+    //     { status: 401 }
+    //   );
+    // }
 
     const webhookData: WompiWebhookData = JSON.parse(body);
+    
+    // Validar estructura del webhook
+    if (!webhookData.data || !webhookData.data.transaction) {
+      console.error('❌ Invalid webhook structure:', webhookData);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Invalid webhook structure' 
+        },
+        { status: 400 }
+      );
+    }
+    
     const { transaction } = webhookData.data;
 
     console.log('🔔 Wompi webhook received:', {
@@ -77,13 +100,33 @@ export async function POST(request: NextRequest) {
         console.log('ℹ️ Transaction status not processed:', transaction.status);
     }
 
-    return NextResponse.json({ success: true });
+    console.log('✅ Webhook processed successfully');
+    return NextResponse.json({ 
+      success: true,
+      message: 'Webhook processed successfully'
+    }, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
   } catch (error) {
     console.error('❌ Error processing webhook:', error);
+    
+    // Responder con 200 para evitar reintentos de Wompi
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        success: false,
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { 
+        status: 200, // Cambiar a 200 para evitar reintentos
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }

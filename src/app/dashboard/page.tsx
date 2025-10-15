@@ -13,11 +13,10 @@ import GoalSuggestionCard from '@/components/GoalSuggestionCard';
 import ProgressCard from '@/components/ProgressCard';
 import CourseHeroCard from '@/components/CourseHeroCard';
 import WeeklyWeightReminder from '@/components/WeeklyWeightReminder';
+import NutritionalBlogs from '@/components/NutritionalBlogs';
 import { useUnifiedCourses } from '@/hooks/useUnifiedCourses';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { generateGoalSuggestion, GoalSuggestion } from '@/lib/goalSuggestion';
-import CourseStartCalendar from '@/components/CourseStartCalendar';
-import CourseProgress from '@/components/CourseProgress';
 
 interface UserProfile {
   id: string;
@@ -81,10 +80,6 @@ export default function DashboardPage() {
   // Hook para compras del usuario
   const { purchases, loading: loadingPurchases, hasActivePurchases } = useUserPurchases();
   
-  // Estados para el flujo de cursos comprados
-  const [showStartCalendar, setShowStartCalendar] = useState(false);
-  const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
-  const [courseLessons, setCourseLessons] = useState<any[]>([]);
 
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses.length);
@@ -102,63 +97,8 @@ export default function DashboardPage() {
     return course.original_price || course.price || 0;
   };
 
-  // Funciones para el flujo de cursos comprados
-  const handleStartCourse = (purchase: any) => {
-    setSelectedPurchase(purchase);
-    setShowStartCalendar(true);
-  };
 
-  const handleStartDateSelected = async (startDate: string) => {
-    if (!selectedPurchase) return;
-    
-    try {
-      // Actualizar la fecha de inicio en la base de datos
-      const { error } = await supabase
-        .from('course_purchases')
-        .update({ start_date: startDate })
-        .eq('id', selectedPurchase.id);
 
-      if (error) {
-        console.error('Error actualizando fecha de inicio:', error);
-        return;
-      }
-
-      // Cargar las lecciones del curso
-      await loadCourseLessons(selectedPurchase.course_id);
-      
-      setShowStartCalendar(false);
-      setSelectedPurchase(null);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const loadCourseLessons = async (courseId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select(`
-          id,
-          title,
-          description,
-          lesson_number,
-          duration_minutes,
-          preview_image,
-          is_preview
-        `)
-        .eq('course_id', courseId)
-        .order('lesson_number', { ascending: true });
-
-      if (error) {
-        console.error('Error cargando lecciones:', error);
-        return;
-      }
-
-      setCourseLessons(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
 
   // Debug logs
   console.log('📊 Dashboard: realCourses length:', realCourses?.length || 0);
@@ -517,15 +457,6 @@ export default function DashboardPage() {
     fetchCategories();
   }, []);
 
-  // Cargar lecciones cuando el usuario tenga un curso con fecha de inicio
-  useEffect(() => {
-    if (hasActivePurchases && purchases.length > 0) {
-      const activePurchase = purchases[0];
-      if (activePurchase.start_date && activePurchase.course_id) {
-        loadCourseLessons(activePurchase.course_id);
-      }
-    }
-  }, [hasActivePurchases, purchases]);
 
   // La lógica de carga de cursos ahora está en el hook useCoursesCache
 
@@ -770,34 +701,6 @@ export default function DashboardPage() {
   }
 
   // Si el usuario tiene cursos comprados, mostrar el flujo de progreso
-  if (hasActivePurchases && purchases.length > 0) {
-    const activePurchase = purchases[0]; // Tomar el primer curso comprado
-    
-    // Si no tiene fecha de inicio, mostrar calendario
-    if (!activePurchase.start_date) {
-      return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          <CourseStartCalendar
-            course={activePurchase.course}
-            onStartDateSelected={handleStartDateSelected}
-            onCancel={() => setShowStartCalendar(false)}
-          />
-        </div>
-      );
-    }
-    
-    // Si tiene fecha de inicio, mostrar progreso
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <CourseProgress
-            course={activePurchase.course}
-            lessons={courseLessons}
-          />
-        </div>
-      </div>
-    );
-  }
 
   if (!userProfile) {
     return <QuickLoading message="Cargando tu perfil..." duration={1500} />;
@@ -881,7 +784,9 @@ export default function DashboardPage() {
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
               <div className="flex items-center space-x-2 mb-3">
                 <Target className="w-5 h-5 text-[#85ea10]" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tu Progreso</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {hasActivePurchases ? '¡Empieza tu nuevo curso!' : 'Tu Progreso'}
+                </h2>
               </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1401,6 +1306,11 @@ export default function DashboardPage() {
           )}
         </div>
         )}
+
+        {/* Nutritional Blogs Section */}
+        <div className="mb-8">
+          <NutritionalBlogs />
+        </div>
       </main>
 
       {/* Footer */}

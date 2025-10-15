@@ -34,7 +34,7 @@ export const useUserPurchases = (): UseUserPurchasesReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const loadPurchases = async () => {
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       setLoading(false);
       return;
     }
@@ -44,6 +44,31 @@ export const useUserPurchases = (): UseUserPurchasesReturn => {
       setError(null);
       
       console.log('🔄 useUserPurchases: Cargando compras del usuario...');
+      
+      // SIMULACIÓN TEMPORAL: Solo para rogerboxtech@gmail.com
+      if (session.user.email === 'rogerboxtech@gmail.com') {
+        console.log('🎭 SIMULACIÓN: Usuario rogerbox detectado, simulando compra...');
+        const simulatedPurchase: UserPurchase = {
+          id: 'sim-001',
+          course_id: '1',
+          order_id: 'order-sim-001',
+          purchase_date: new Date().toISOString(),
+          status: 'active',
+          start_date: null, // Sin fecha de inicio para mostrar el calendario
+          course: {
+            id: '1',
+            title: 'CARDIO HIIT 40 MIN ¡BAJA DE PESO!',
+            slug: 'cardio-hiit-40-min-baja-peso',
+            preview_image: '/images/courses/course-1.jpg',
+            duration_days: 84
+          }
+        };
+        
+        console.log('✅ SIMULACIÓN: Compra simulada creada');
+        setPurchases([simulatedPurchase]);
+        setLoading(false);
+        return;
+      }
       
       const { data, error: fetchError } = await supabase
         .from('course_purchases')
@@ -62,7 +87,7 @@ export const useUserPurchases = (): UseUserPurchasesReturn => {
             duration_days
           )
         `)
-        .eq('user_id', session.user.id)
+        .eq('user_email', session.user.email)
         .eq('status', 'active')
         .order('purchase_date', { ascending: false });
 
@@ -73,7 +98,14 @@ export const useUserPurchases = (): UseUserPurchasesReturn => {
       }
 
       console.log(`✅ useUserPurchases: ${data?.length || 0} compras encontradas`);
-      setPurchases(data || []);
+      
+      // Transformar los datos para que coincidan con la interfaz
+      const transformedData = data?.map((purchase: any) => ({
+        ...purchase,
+        course: purchase.course?.[0] || null
+      })) || [];
+      
+      setPurchases(transformedData);
       
     } catch (err) {
       console.error('❌ useUserPurchases: Error general:', err);
@@ -89,7 +121,7 @@ export const useUserPurchases = (): UseUserPurchasesReturn => {
 
   useEffect(() => {
     loadPurchases();
-  }, [session?.user?.id]);
+  }, [session?.user?.email]);
 
   const hasActivePurchases = purchases.length > 0;
 

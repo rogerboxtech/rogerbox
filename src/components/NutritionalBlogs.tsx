@@ -1,236 +1,151 @@
 'use client';
 
-import { useState } from 'react';
-import { Clock, User, Tag, ArrowRight, BookOpen } from 'lucide-react';
-import { Blog } from '@/types';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { NutritionalBlog } from '@/types';
+import { Clock, User, Calendar, ArrowRight, BookOpen } from 'lucide-react';
 
-interface NutritionalBlogsProps {
-  blogs: Blog[];
-}
+export default function NutritionalBlogs() {
+  const router = useRouter();
+  const [blogs, setBlogs] = useState<NutritionalBlog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function NutritionalBlogs({ blogs }: NutritionalBlogsProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
 
-  const categories = [
-    { id: 'all', name: 'Todos', icon: '📚' },
-    { id: 'nutrition', name: 'Nutrición', icon: '🥗' },
-    { id: 'exercise', name: 'Ejercicio', icon: '💪' },
-    { id: 'lifestyle', name: 'Estilo de Vida', icon: '🌟' },
-    { id: 'tips', name: 'Consejos', icon: '💡' }
-  ];
+  const fetchBlogs = async () => {
+    try {
+      const response = await fetch('/api/blogs');
+      const data = await response.json();
+      setBlogs(data.blogs || []);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredBlogs = selectedCategory === 'all' 
-    ? blogs 
-    : blogs.filter(blog => blog.category === selectedCategory);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
 
-  if (selectedBlog) {
+  const handleBlogClick = (blog: NutritionalBlog) => {
+    router.push(`/blog/${blog.slug}`);
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-        {/* Background Overlay */}
-        <div className="fixed inset-0 bg-gradient-to-r from-[#164151]/80 via-[#29839c]/70 to-[#164151]/60 backdrop-blur-sm z-0"></div>
-        
-        {/* Content */}
-        <div className="relative z-10 min-h-screen p-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <button
-                onClick={() => setSelectedBlog(null)}
-                className="flex items-center text-white/80 hover:text-white transition-colors"
-              >
-                <ArrowRight className="w-5 h-5 mr-2 rotate-180" />
-                Volver a los blogs
-              </button>
-              <div className="text-[#85ea10] font-bold text-lg">ROGERBOX</div>
-            </div>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#85ea10]"></div>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Blog Content */}
-            <article className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              {/* Blog Header */}
-              <div className="mb-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="px-3 py-1 bg-[#85ea10]/20 text-[#85ea10] rounded-full text-sm font-medium">
-                    {categories.find(c => c.id === selectedBlog.category)?.name}
-                  </span>
-                  <div className="flex items-center text-white/60 text-sm">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {selectedBlog.readTime} min de lectura
-                  </div>
-                </div>
-                
-                <h1 className="text-4xl font-black text-white mb-4 leading-tight">
-                  {selectedBlog.title}
-                </h1>
-                
-                <div className="flex items-center gap-4 text-white/80">
-                  <div className="flex items-center">
-                    <User className="w-4 h-4 mr-2" />
-                    {selectedBlog.author}
-                  </div>
-                  <div className="text-sm">
-                    {selectedBlog.publishedAt.toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Blog Image */}
-              <div className="mb-8">
-                <img
-                  src={selectedBlog.thumbnailUrl}
-                  alt={selectedBlog.title}
-                  className="w-full h-64 object-cover rounded-xl"
-                />
-              </div>
-
-              {/* Blog Content */}
-              <div className="prose prose-invert max-w-none">
-                <p className="text-xl text-white/90 mb-6 leading-relaxed">
-                  {selectedBlog.excerpt}
-                </p>
-                
-                <div className="text-white/80 leading-relaxed space-y-4">
-                  {selectedBlog.content.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="mt-8 pt-6 border-t border-white/10">
-                <div className="flex items-center gap-2 mb-4">
-                  <Tag className="w-4 h-4 text-white/60" />
-                  <span className="text-white/60 text-sm">Etiquetas:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedBlog.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-white/10 text-white/80 rounded-full text-sm"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </article>
-          </div>
+  if (blogs.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div className="text-center py-8">
+          <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Próximamente
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Estamos preparando contenido nutricional para ti
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Background Overlay */}
-      <div className="fixed inset-0 bg-gradient-to-r from-[#164151]/80 via-[#29839c]/70 to-[#164151]/60 backdrop-blur-sm z-0"></div>
-      
-      {/* Content */}
-      <div className="relative z-10 min-h-screen p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-black text-white mb-4">
-              BLOG <span className="text-[#85ea10]">NUTRICIONAL</span>
-            </h1>
-            <p className="text-xl text-white/80 max-w-2xl mx-auto">
-              Consejos, tips y guías gratuitas para optimizar tu alimentación y alcanzar tus objetivos
-            </p>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-3 rounded-full border-2 transition-all duration-300 ${
-                  selectedCategory === category.id
-                    ? 'border-[#85ea10] bg-[#85ea10]/10 text-[#85ea10]'
-                    : 'border-white/30 text-white hover:border-white/50'
-                }`}
-              >
-                <span className="mr-2">{category.icon}</span>
-                {category.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Blogs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredBlogs.map((blog) => (
-              <article
-                key={blog.id}
-                onClick={() => setSelectedBlog(blog)}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-[#85ea10]/50 transition-all duration-300 cursor-pointer group"
-              >
-                {/* Blog Image */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={blog.thumbnailUrl}
-                    alt={blog.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-[#85ea10]/20 text-[#85ea10] rounded-full text-sm font-medium">
-                      {categories.find(c => c.id === blog.category)?.name}
-                    </span>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-black/40 text-white rounded-full text-sm">
-                      {blog.isFree ? 'GRATIS' : 'PREMIUM'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Blog Content */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-[#85ea10] transition-colors line-clamp-2">
-                    {blog.title}
-                  </h3>
-                  
-                  <p className="text-white/70 mb-4 line-clamp-3">
-                    {blog.excerpt}
-                  </p>
-
-                  {/* Blog Meta */}
-                  <div className="flex items-center justify-between text-sm text-white/60">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-1" />
-                      {blog.author}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {blog.readTime} min
-                    </div>
-                  </div>
-
-                  {/* Read More */}
-                  <div className="mt-4 flex items-center text-[#85ea10] group-hover:text-white transition-colors">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    <span className="font-medium">Leer más</span>
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {filteredBlogs.length === 0 && (
-            <div className="text-center py-16">
-              <BookOpen className="w-16 h-16 text-white/40 mx-auto mb-4" />
-              <h3 className="text-xl text-white/60 mb-2">No hay blogs disponibles</h3>
-              <p className="text-white/40">Próximamente más contenido</p>
-            </div>
-          )}
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+            Tips Nutricionales
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Consejos y recomendaciones de nuestros expertos
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-[#85ea10] font-medium">
+          <BookOpen className="w-4 h-4" />
+          {blogs.length} artículos
         </div>
       </div>
+
+      {/* Blog Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {blogs.slice(0, 6).map((blog) => (
+          <div
+            key={blog.id}
+            className="group cursor-pointer"
+            onClick={() => handleBlogClick(blog)}
+          >
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-300 group-hover:scale-105">
+              {/* Imagen */}
+              {blog.featured_image_url && (
+                <div className="mb-4">
+                  <img
+                    src={blog.featured_image_url}
+                    alt={blog.title}
+                    className="w-full h-32 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.src = '/images/course-placeholder.jpg';
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Contenido */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-[#85ea10] transition-colors">
+                  {blog.title}
+                </h3>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                  {blog.excerpt}
+                </p>
+
+                {/* Meta información */}
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {blog.author}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {blog.reading_time} min
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(blog.published_at || blog.created_at)}
+                  </div>
+                </div>
+
+                {/* Botón de leer más */}
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-sm text-[#85ea10] font-medium group-hover:text-[#6bc20a] transition-colors">
+                    Leer más
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-[#85ea10] group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }

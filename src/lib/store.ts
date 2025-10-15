@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AppState, User, Class, Video, Membership, Reservation, Attendance, VideoPurchase, DigitalRoutinePurchase, NutritionalPlan, Blog, NutritionalPlanPurchase } from '@/types';
+import { AppState, User, Class, Video, Membership, Reservation, Attendance, VideoPurchase, DigitalRoutinePurchase, NutritionalPlan, NutritionalBlog, NutritionalPlanPurchase } from '@/types';
 
 const STORAGE_KEY = 'roger-box-app-state';
 
@@ -210,60 +210,7 @@ const defaultNutritionalPlans: NutritionalPlan[] = [
 ];
 
 // Default blogs
-const defaultBlogs: Blog[] = [
-  {
-    id: 'blog-1',
-    title: '10 Alimentos que Aceleran tu Metabolismo',
-    excerpt: 'Descubre los alimentos que te ayudan a quemar más calorías durante el día',
-    content: 'Contenido completo del blog...',
-    author: 'Roger Barreto',
-    category: 'nutrition',
-    tags: ['metabolismo', 'quema de grasa', 'alimentos'],
-    readTime: 5,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400',
-    publishedAt: new Date(),
-    isFree: true,
-  },
-  {
-    id: 'blog-2',
-    title: 'Cómo Hidratarte Correctamente Durante el Entrenamiento',
-    excerpt: 'La hidratación es clave para un rendimiento óptimo en tus entrenamientos HIIT',
-    content: 'Contenido completo del blog...',
-    author: 'Roger Barreto',
-    category: 'nutrition',
-    tags: ['hidratación', 'rendimiento', 'entrenamiento'],
-    readTime: 4,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
-    publishedAt: new Date(),
-    isFree: true,
-  },
-  {
-    id: 'blog-3',
-    title: 'Proteínas: Todo lo que Necesitas Saber',
-    excerpt: 'Guía completa sobre proteínas para maximizar tus resultados',
-    content: 'Contenido completo del blog...',
-    author: 'Roger Barreto',
-    category: 'nutrition',
-    tags: ['proteínas', 'musculación', 'nutrición'],
-    readTime: 7,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
-    publishedAt: new Date(),
-    isFree: true,
-  },
-  {
-    id: 'blog-4',
-    title: 'Meal Prep: Prepárate para el Éxito',
-    excerpt: 'Aprende a preparar tus comidas de la semana de forma eficiente',
-    content: 'Contenido completo del blog...',
-    author: 'Roger Barreto',
-    category: 'lifestyle',
-    tags: ['meal prep', 'organización', 'alimentación saludable'],
-    readTime: 6,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400',
-    publishedAt: new Date(),
-    isFree: true,
-  }
-];
+const defaultBlogs: NutritionalBlog[] = [];
 
 const defaultState: AppState = {
   currentUser: null,
@@ -295,7 +242,7 @@ const defaultState: AppState = {
   classes: defaultClasses,
   videos: defaultVideos,
   nutritionalPlans: defaultNutritionalPlans,
-  blogs: defaultBlogs,
+  nutritionalBlogs: defaultBlogs,
   isAdminMode: false,
 };
 

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { User as UserIcon, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import QuickLoading from '@/components/QuickLoading';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
@@ -402,5 +403,13 @@ export default function RegisterPage() {
       </div>
       </div>
     </>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<QuickLoading />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
